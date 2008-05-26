@@ -1,0 +1,36 @@
+#!/usr/bin/env r
+
+setup <- function() {
+    tmp <- tempfile('cran2deb')
+    dir.create(tmp)
+    return (tmp)
+}
+
+prepare.pkg <- function(dir, pkg, ...) {
+    # based loosely on library/utils/R/packages2.R::install.packages
+    tarball <- download.packages(pkg, dir, type="source")[1,2]
+    wd <- getwd()
+    setwd(dir)
+    system(paste('tar','xzf',tarball))
+    setwd(wd)
+    return (gsub("_\\.(zip|tar\\.gz)", "",
+                 gsub(.standard_regexps()$valid_package_version, "",
+                      tarball)))
+}
+
+parse.description <- function(path) {
+    return (read.dcf(paste(path,'DESCRIPTION',sep='/')))
+}
+
+cleanup <- function(dir) {
+    unlink(dir, recursive=T)
+}
+
+
+test <- function(pkg) {
+    dir <- setup()
+        description <- parse.description(prepare.pkg(dir,pkg))
+    cleanup(dir)
+    return(description)
+}
+
