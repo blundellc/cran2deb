@@ -22,14 +22,59 @@ parse.description <- function(path) {
     return (read.dcf(paste(path,'DESCRIPTION',sep='/')))
 }
 
+prepare.new.debian <- function(path, pkg, description) {
+    repo <- 'cran'
+    debdir <- paste(path,'debian',sep='/')
+    debfile <- function(x) { paste(debdir,x,sep='/') }
+    unlink(debdir,recursive=T)
+    dir.create(debdir)
+    cat(paste(paste(pkg,'(1.0) unstable; urgency=low'),''
+             ,'  * Initial release.',''
+             ,paste(' -- cran2deb <> ',format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z'))
+             ,'',sep='\n'),file=debfile('changelog'))
+    cat(paste('#!/usr/bin/make -f'
+             ,'include /usr/share/R/debian/r-cran.mk'
+             ,'',sep='\n')
+       ,file=debfile('rules'))
+    cat(paste(paste("automatically created by cran2deb from",pkg)
+             ,paste('in the R repository',repo,'which has the following DESCRIPTION:')
+             ,'',sep='\n'),file=debfile('copyright'))
+    write.dcf(description,file=debfile('copyright'),append=T)
+    control = data.frame()
+    control[1,'Source'] = pkg
+    control[1,'Section'] = 'math'
+    control[1,'Priority'] = 'optional'
+    control[1,'Maintainer'] = 'cran2deb'
+    control[1,'Build-Depends-Indep'] = 'debhelper (>> 4.1.0), r-base-dev (>= 2.7.0), cdbs'
+    control[2,'Package'] = paste('r',repo,pkg,sep='-')
+    control[2,'Architecture'] = 'all'
+    control[2,'Depends'] = ''
+    control[2,'Description'] = paste(description[1,'Description'])
+    write.dcf(control,file=debfile('control'))
+
+    invisible()
+}
+
+build.debian <- function(path) {
+    wd <- getwd()
+    setwd(path)
+    system('debuild')
+    setwd(wd)
+}
+
 cleanup <- function(dir) {
     unlink(dir, recursive=T)
+
+    invisible()
 }
 
 
 test <- function(pkg) {
     dir <- setup()
-        description <- parse.description(prepare.pkg(dir,pkg))
+        path <- prepare.pkg(dir,pkg)
+        description <- parse.description(path)
+        prepare.new.debian(path,pkg,description)
+        build.debian(path)
     cleanup(dir)
     return(description)
 }
