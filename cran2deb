@@ -1,5 +1,69 @@
 #!/usr/bin/env r
 
+version.new <- function(rver,debian_revision=1, debian_epoch=0) {
+    # generate a string representation of the Debian version of an
+    # R version of a package
+    pkgver = rver
+
+    # Debian policy says that an upstream version should start with a digit and
+    # may only contain ASCII alphanumerics and '.+-:~'
+    if (!length(grep('^[0-9][A-Za-z0-9.+:~-]*$',rver))) {
+        stop(paste('R package version',rver
+                  ,'does not obviously translate into a valid Debian version.'))
+    }
+
+    # if rver contains a : then the Debian version must also have a colon
+    if (debian_epoch == 0 && length(grep(':',pkgver)))
+        debian_epoch = 1
+
+    # if the epoch is non-zero then include it
+    if (debian_epoch != 0)
+        pkgver = paste(debian_epoch,':',pkgver,sep='')
+
+    # always add the '-1' Debian release; nothing is lost and rarely will R
+    # packages be Debian packages without modification.
+    return(paste(pkgver,'-',debian_revision,sep=''))
+}
+
+version.epoch <- function(pkgver) {
+    # return the Debian epoch of a Debian package version
+    if (!length(grep(':',pkgver)))
+        return(0)
+    return(as.integer(sub('^([0-9]+):.*','\\1',pkgver)))
+}
+# version.epoch . version.new(x,y) = id
+# version.epoch(version.new(x,y)) = 0
+
+version.revision <- function(pkgver) {
+    # return the Debian revision of a Debian package version
+    return(as.integer(sub('.*-([0-9]+)$','\\1',pkgver)))
+}
+# version.revision . version.new(x) = id
+# version.revision(version.new(x)) = 1
+
+version.upstream <- function(pkgver) {
+    # return the upstream version of a Debian package version
+    return(sub('-[0-9]+$','',sub('^[0-9]+:','',pkgver)))
+}
+# version.upstream . version.new = id
+
+version.update <- function(rver, prev_pkgver) {
+    prev_rver <- version.upstream(prev_pkgver)
+    if (prev_rver == rver) {
+        # increment the Debian revision
+        return(version.new(rver
+                          ,debian_revision = version.revision(prev_pkgver)+1
+                          ,debian_epoch    = version.epoch(prev_pkgver)
+                          ))
+    }
+    # new release
+    # TODO: implement Debian ordering over version and then autoincrement
+    #       Debian epoch when upstream version does not increment.
+    return(version.new(rver
+                      ,debian_epoch = version.epoch(prev_pkgver)
+                      ))
+}
+
 setup <- function() {
     tmp <- tempfile('cran2deb')
     dir.create(tmp)
@@ -8,14 +72,24 @@ setup <- function() {
 
 prepare.pkg <- function(dir, pkg, ...) {
     # based loosely on library/utils/R/packages2.R::install.packages
-    tarball <- download.packages(pkg, dir, type="source")[1,2]
+    archive <- download.packages(pkg, dir, type="source")[1,2]
     wd <- getwd()
     setwd(dir)
-    system(paste('tar','xzf',tarball))
+    if (length(grep('\\.zip$',archive))) {
+        cmd = paste('unzip',shQuote(archive))
+    } else if (length(grep('\\.tar\\.gz$',archive))) {
+        cmd = paste('tar','xzf',shQuote(archive))
+    } else {
+        stop(paste('Type of archive',archive,'is unknown.'))
+    }
+    ret = system(cmd)
     setwd(wd)
-    return (gsub("_\\.(zip|tar\\.gz)", "",
-                 gsub(.standard_regexps()$valid_package_version, "",
-                      tarball)))
+    if (ret != 0) {
+        stop(paste('Extraction of archive',archive,'failed.'))
+    }
+    return (sub("_\\.(zip|tar\\.gz)", ""
+               ,gsub(.standard_regexps()$valid_package_version, ""
+                    ,archive)))
 }
 
 parse.description <- function(path) {
@@ -51,6 +125,7 @@ prepare.new.debian <- function(path, pkg, description) {
     control[2,'Depends'] = ''
     control[2,'Description'] = paste(description[1,'Description'])
     write.dcf(control,file=debfile('control'))
+    # TODO: debian/watch
 
     invisible()
 }
