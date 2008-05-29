@@ -5,6 +5,12 @@ version.new <- function(rver,debian_revision=1, debian_epoch=0) {
     # R version of a package
     pkgver = rver
 
+    # ``Writing R extensions'' says that the version consists of at least two
+    # non-negative integers, separated by . or -
+    if (!length(grep('^([0-9]*[1-9][.-])+[0-9]*[1-9]$',rver))) {
+        stop(paste('Not a valid R package version',rver))
+    }
+
     # Debian policy says that an upstream version should start with a digit and
     # may only contain ASCII alphanumerics and '.+-:~'
     if (!length(grep('^[0-9][A-Za-z0-9.+:~-]*$',rver))) {
@@ -70,9 +76,10 @@ setup <- function() {
     return (tmp)
 }
 
-prepare.pkg <- function(dir, pkg, ...) {
+prepare.pkg <- function(dir, pkgname) {
     # based loosely on library/utils/R/packages2.R::install.packages
-    archive <- download.packages(pkg, dir, type="source")[1,2]
+    # should do nothing Debian specific
+    archive <- download.packages(pkgname, dir, type="source")[1,2]
     wd <- getwd()
     setwd(dir)
     if (length(grep('\\.zip$',archive))) {
@@ -87,53 +94,107 @@ prepare.pkg <- function(dir, pkg, ...) {
     if (ret != 0) {
         stop(paste('Extraction of archive',archive,'failed.'))
     }
-    return (sub("_\\.(zip|tar\\.gz)", ""
-               ,gsub(.standard_regexps()$valid_package_version, ""
-                    ,archive)))
+    pkg <- pairlist()
+    pkg$name = pkgname
+    pkg$archive = archive
+    pkg$path = sub("_\\.(zip|tar\\.gz)", ""
+                  ,gsub(.standard_regexps()$valid_package_version, ""
+                  ,archive))
+    pkg$description = read.dcf(paste(pkg$path,'DESCRIPTION',sep='/'))
+    pkg$repo = 'cran'
+    pkg$version = pkg$description[1,'Version']
+    return(pkg)
 }
 
-parse.description <- function(path) {
-    return (read.dcf(paste(path,'DESCRIPTION',sep='/')))
-}
+debian_ok_licenses=c('GPL-2','GPL-3','LGPL-2','LGPL-2.1','LGPL-3'
+                    ,'AGPL-3','Artistic-1.0','Artistic-2.0','Unlimited')
 
-prepare.new.debian <- function(path, pkg, description) {
-    repo <- 'cran'
-    debdir <- paste(path,'debian',sep='/')
+chomp <- function(x) {
+    return(sub('^[:space:]+','',sub('[:space:]+$','',x)))
+}
+prepare.new.debian <- function(pkg) {
+    maintainer = 'cran2deb buildbot <cran2deb@example.org>'
+
+    if (!length(grep('\\.tar\\.gz',pkg$archive))) {
+        stop('archive is not tarball')
+    }
+    debarchive= paste(dirname(pkg$archive),'/'
+                             ,pkg$name,'_'
+                             ,pkg$version,'.orig.tar.gz'
+                             ,sep='')
+    file.rename(pkg$archive, debarchive)
+    pkg$archive = debarchive
+    # not sure can rename directory from R(!)
+    pkg$debversion = version.new(pkg$version)
+    pkg$debname = paste('r',pkg$repo,pkg$name,sep='-')
+    debdir <- paste(pkg$path,'debian',sep='/')
     debfile <- function(x) { paste(debdir,x,sep='/') }
     unlink(debdir,recursive=T)
     dir.create(debdir)
-    cat(paste(paste(pkg,'(1.0) unstable; urgency=low'),''
-             ,'  * Initial release.',''
-             ,paste(' -- cran2deb <> ',format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z'))
+
+    # TODO: ``Writing R extensions'' mentions that a package may also have
+    # {NEWS,ChangeLog} files.
+    cat(paste(paste(pkg$name,' (',pkg$debversion,') unstable; urgency=low',sep='')
+             ,'' ,'  * Initial release.',''
+             ,paste(' --',maintainer,'',format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z'))
              ,'',sep='\n'),file=debfile('changelog'))
     cat(paste('#!/usr/bin/make -f'
              ,'include /usr/share/R/debian/r-cran.mk'
              ,'',sep='\n')
        ,file=debfile('rules'))
-    cat(paste(paste("automatically created by cran2deb from",pkg)
-             ,paste('in the R repository',repo,'which has the following DESCRIPTION:')
+    Sys.chmod(debfile('rules'),'0700')
+
+    # if License: is missing, we must stop!
+    if (!('License' %in% names(pkg$description[1,]))) {
+        stop('package has no License: field in description!')
+    }
+    accept=NULL
+    for (license in strsplit(chomp(pkg$description[1,'License']),' *\\| *')[[1]]) {
+        if (license %in% debian_ok_licenses) {
+            accept=license
+            break
+        }
+        # TODO: put debian_ok_licenses in DB
+        # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
+        # TODO: name (op v)
+    }
+    if (is.null(accept)) {
+        stop('No acceptable license.')
+    } else {
+        message(paste('Auto-accepted license',accept))
+    }
+    # TODO: wording of copyright!
+    cat(paste(paste("automatically created by cran2deb from",pkg$name
+                   ,paste('(',pkg$version,')',sep=''),'on the basis of possible license',accept)
+             ,paste('in the R repository',pkg$repo,'which has the following DESCRIPTION:')
              ,'',sep='\n'),file=debfile('copyright'))
-    write.dcf(description,file=debfile('copyright'),append=T)
+    write.dcf(pkg$description,file=debfile('copyright'),append=T,indent=0)
     control = data.frame()
-    control[1,'Source'] = pkg
+    control[1,'Source'] = pkg$name
     control[1,'Section'] = 'math'
     control[1,'Priority'] = 'optional'
-    control[1,'Maintainer'] = 'cran2deb'
+    control[1,'Maintainer'] = maintainer
     control[1,'Build-Depends-Indep'] = 'debhelper (>> 4.1.0), r-base-dev (>= 2.7.0), cdbs'
-    control[2,'Package'] = paste('r',repo,pkg,sep='-')
+    control[1,'Standards-Version'] = '3.7.3.0'
+    control[2,'Package'] = paste('r',pkg$repo,pkg$name,sep='-')
     control[2,'Architecture'] = 'all'
     control[2,'Depends'] = ''
-    control[2,'Description'] = paste(description[1,'Description'])
-    write.dcf(control,file=debfile('control'))
+    control[2,'Package'] = pkg$debname
+    control[2,'Description'] = paste(pkg$description[1,'Description'])
+    write.dcf(control,file=debfile('control'),indent=1)
     # TODO: debian/watch
 
-    invisible()
+    return(pkg)
 }
 
-build.debian <- function(path) {
+build.debian <- function(pkg) {
     wd <- getwd()
-    setwd(path)
-    system('debuild')
+    setwd(pkg$path)
+    message(paste('building Debian package'
+                 ,pkg$debname
+                 ,paste('(',pkg$debversion,')',sep='')
+                 ,'...'))
+    system('debuild -us -uc -b')
     setwd(wd)
 }
 
@@ -144,13 +205,11 @@ cleanup <- function(dir) {
 }
 
 
-test <- function(pkg) {
+test <- function(name) {
     dir <- setup()
-        path <- prepare.pkg(dir,pkg)
-        description <- parse.description(path)
-        prepare.new.debian(path,pkg,description)
-        build.debian(path)
-    cleanup(dir)
-    return(description)
+        pkg <- prepare.new.debian(prepare.pkg(dir,name))
+        build.debian(pkg)
+#    cleanup(dir)
+    return(pkg)
 }
 
