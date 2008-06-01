@@ -13,7 +13,7 @@ ifs=$nl {
     ifs=() { seen_files=`{{for (line in $lines) echo $line} | cut -d: -f1} }
     missing_copyright=()
     for (file in $files) {
-        if (echo -n $seen_files | grep -q $file) {
+        if (echo -n $seen_files | grep -q '^'^$file^'$') {
         } else {
             missing_copyright=($missing_copyright $file)
         }

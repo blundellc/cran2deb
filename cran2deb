@@ -163,25 +163,72 @@ prepare.new.debian <- function(pkg) {
     } else {
         message(paste('Auto-accepted license',accept))
     }
-    # TODO: wording of copyright!
-    cat(paste(paste("automatically created by cran2deb from",pkg$name
-                   ,paste('(',pkg$version,')',sep=''),'on the basis of possible license',accept)
-             ,paste('in the R repository',pkg$repo,'which has the following DESCRIPTION:')
-             ,'',sep='\n'),file=debfile('copyright'))
-    write.dcf(pkg$description,file=debfile('copyright'),append=T,indent=0)
+    if (accept == 'Unlimited') {
+        # definition of Unlimited from ``Writing R extensions''
+        accept=paste('Unlimited (no restrictions on distribution or'
+                    ,'use other than those imposed by relevant laws)')
+    }
+    writeLines(strwrap(
+        paste('This Debian package of the GNU R package',pkg$name
+             ,'was generated using cran2deb by'
+             ,paste(maintainer,'.',sep='')
+             ,'The author(s) of the original GNU R package were:'
+             ,pkg$description[1,'Author']
+             ,''
+             ,'The original GNU R package is maintained by'
+             ,pkg$description[1,'Maintainer'],'and was obtained from:'
+             ,''
+             ,paste('    ',contrib.url(getOption("repos")))
+             ,''
+             ,''
+             ,'The GNU R package DESCRIPTION offers a'
+             ,'Copyright licenses under the terms of the',accept
+             ,'license.  On a Debian GNU/Linux system, common'
+             ,'licenses are included in the directory'
+             ,'/usr/share/common-licenses/.'
+             ,''
+             ,'The DESCRIPTION file for the original GNU R package '
+             ,'can be found in '
+             ,paste('/usr/lib/R/site-library'
+                   ,pkg$debname
+                   ,'DESCRIPTION'
+                   ,sep='/')
+             ,sep='\n'), width=72), con=debfile('copyright'))
+
+    # heuristic: if /src/ exists in pkg$path, then this is an
+    #            architecture-dependent package.
+    # CRAN2DEB.pm is a bit fancier about this but ``Writing R extensions''
+    # says: ``The sources and headers for the compiled code are in src, plus
+    # optionally file Makevars or Makefile.'' It seems unlikely that
+    # architecture independent code would end up here.
+    archdep = file.exists(paste(pkg$path,'src',sep='/'))
+    shlibdep = ''
+    if (archdep) {
+        shlibdep = '${shlibs:Depends}'
+    }
     control = data.frame()
     control[1,'Source'] = pkg$name
     control[1,'Section'] = 'math'
     control[1,'Priority'] = 'optional'
     control[1,'Maintainer'] = maintainer
-    control[1,'Build-Depends-Indep'] = 'debhelper (>> 4.1.0), r-base-dev (>= 2.7.0), cdbs'
+    control[1,'Build-Depends'] = paste('debhelper (>> 4.1.0)'
+                                      ,'r-base-dev (>= 2.7.0)'
+                                      ,'cdbs'
+                                      ,sep=', ')
     control[1,'Standards-Version'] = '3.7.3.0'
-    control[2,'Package'] = paste('r',pkg$repo,pkg$name,sep='-')
-    control[2,'Architecture'] = 'all'
-    control[2,'Depends'] = ''
+
     control[2,'Package'] = pkg$debname
-    control[2,'Description'] = paste(pkg$description[1,'Description'])
-    write.dcf(control,file=debfile('control'),indent=1)
+    control[2,'Architecture'] = 'all'
+    if (archdep) {
+        control[2,'Architecture'] = 'any'
+    }
+    control[2,'Depends'] = paste('r-base-core', shlibdep, sep=', ')
+    control[2,'Description'] = paste('GNU R package "'
+                                    ,pkg$description[1,'Title'],'"\n'
+                                    ,pkg$description[1,'Description']
+                                    ,sep='')
+    # Debian policy says 72 char width; indent minimally
+    write.dcf(control,file=debfile('control'),indent=1,width=72)
     # TODO: debian/watch
 
     return(pkg)
