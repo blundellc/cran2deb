@@ -1,0 +1,16 @@
+#!/usr/bin/rc
+
+mkdir -p log
+./cranpkgs >all_pkgs
+for (pkg in `{cat all_pkgs}) {
+    if (~ $pkg *.* */*) {
+        echo bad name $pkg >log/ERROR
+    } else {
+        echo $pkg...
+        fail=0
+        ./cran2deb $pkg >log/$pkg >[2=1] || fail=1
+        if (~ $fail 0) {
+            rm -f log/$pkg
+        }
+    }
+}

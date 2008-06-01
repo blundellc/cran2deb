@@ -7,7 +7,7 @@ version.new <- function(rver,debian_revision=1, debian_epoch=0) {
 
     # ``Writing R extensions'' says that the version consists of at least two
     # non-negative integers, separated by . or -
-    if (!length(grep('^([0-9]*[1-9][.-])+[0-9]*[1-9]$',rver))) {
+    if (!length(grep('^([0-9]+[.-])+[0-9]+$',rver))) {
         stop(paste('Not a valid R package version',rver))
     }
 
@@ -76,10 +76,15 @@ setup <- function() {
     return (tmp)
 }
 
-prepare.pkg <- function(dir, pkgname) {
+cleanup <- function(dir) {
+    unlink(dir,recursive=T)
+    invisible()
+}
+
+prepare.pkg <- function(dir, pkgname,repo='cran',repoURL='http://cran.uk.r-project.org/') {
     # based loosely on library/utils/R/packages2.R::install.packages
     # should do nothing Debian specific
-    archive <- download.packages(pkgname, dir, type="source")[1,2]
+    archive <- download.packages(pkgname, dir, repos=repoURL, type="source")[1,2]
     wd <- getwd()
     setwd(dir)
     if (length(grep('\\.zip$',archive))) {
@@ -101,17 +106,27 @@ prepare.pkg <- function(dir, pkgname) {
                   ,gsub(.standard_regexps()$valid_package_version, ""
                   ,archive))
     pkg$description = read.dcf(paste(pkg$path,'DESCRIPTION',sep='/'))
-    pkg$repo = 'cran'
+    pkg$repo = repo
+    pkg$repoURL = repoURL
     pkg$version = pkg$description[1,'Version']
     return(pkg)
 }
 
-debian_ok_licenses=c('GPL-2','GPL-3','LGPL-2','LGPL-2.1','LGPL-3'
-                    ,'AGPL-3','Artistic-1.0','Artistic-2.0','Unlimited')
+debian_ok_licenses=c('GPL','LGPL','AGPL','Artistic','Unlimited')
+# these are commonly found 'in the wild'. the R packages should be fixed...
+debian_wild_licenses=c('gpl version 2 or newer'
+                      ,'gpl version 2 or later'
+                      ,'gnu gpl'
+                      ,'gpl v2'
+                      ,'gpl (version 2 or later)'
+                      ,'gpl version 2'
+                      ,'gpl 2 or later'
+                      ,'gpl2')
 
 chomp <- function(x) {
-    return(sub('^[:space:]+','',sub('[:space:]+$','',x)))
+    return(sub('^[[:space:]]+','',sub('[[:space:]]+$','',x)))
 }
+
 prepare.new.debian <- function(pkg) {
     maintainer = 'cran2deb buildbot <cran2deb@example.org>'
 
@@ -126,7 +141,11 @@ prepare.new.debian <- function(pkg) {
     pkg$archive = debarchive
     # not sure can rename directory from R(!)
     pkg$debversion = version.new(pkg$version)
-    pkg$debname = paste('r',pkg$repo,pkg$name,sep='-')
+    if (!length(grep('^[A-Za-z0-9][A-Za-z0-9+.-]+$',pkg$name))) {
+        stop(paste('Cannot convert package name into a Debian name',pkg$name))
+    }
+    pkg$debname = paste('r',tolower(pkg$repo),tolower(pkg$name),sep='-')
+    pkg$srcname = tolower(pkg$name)
     debdir <- paste(pkg$path,'debian',sep='/')
     debfile <- function(x) { paste(debdir,x,sep='/') }
     unlink(debdir,recursive=T)
@@ -134,7 +153,7 @@ prepare.new.debian <- function(pkg) {
 
     # TODO: ``Writing R extensions'' mentions that a package may also have
     # {NEWS,ChangeLog} files.
-    cat(paste(paste(pkg$name,' (',pkg$debversion,') unstable; urgency=low',sep='')
+    cat(paste(paste(pkg$srcname,' (',pkg$debversion,') unstable; urgency=low',sep='')
              ,'' ,'  * Initial release.',''
              ,paste(' --',maintainer,'',format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z'))
              ,'',sep='\n'),file=debfile('changelog'))
@@ -149,17 +168,27 @@ prepare.new.debian <- function(pkg) {
         stop('package has no License: field in description!')
     }
     accept=NULL
-    for (license in strsplit(chomp(pkg$description[1,'License']),' *\\| *')[[1]]) {
-        if (license %in% debian_ok_licenses) {
+    for (license in strsplit(chomp(pkg$description[1,'License'])
+                            ,'[[:space:]]*\\|[[:space:]]*')[[1]]) {
+
+        # don't care about versions of licenses
+        license0 = chomp(sub('\\([<=>!]+[[:space:]]*[0-9.]+\\)',''
+                        ,sub('-[0-9.]+','',license)))
+        if (license0 %in% debian_ok_licenses) {
+            accept=license
+            break
+        }
+        license0 = sub('\\.$','',tolower(license0))
+        if (license0 %in% debian_wild_licenses) {
+            message('Accepted wild license. FIX THE PACKAGE!')
             accept=license
             break
         }
         # TODO: put debian_ok_licenses in DB
         # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
-        # TODO: name (op v)
     }
     if (is.null(accept)) {
-        stop('No acceptable license.')
+        stop(paste('No acceptable license:',pkg$description[1,'License']))
     } else {
         message(paste('Auto-accepted license',accept))
     }
@@ -170,15 +199,19 @@ prepare.new.debian <- function(pkg) {
     }
     writeLines(strwrap(
         paste('This Debian package of the GNU R package',pkg$name
-             ,'was generated using cran2deb by'
+             ,'was generated automatically using cran2deb by'
              ,paste(maintainer,'.',sep='')
-             ,'The author(s) of the original GNU R package were:'
+             ,''
+             ,'The original GNU R package is Copyright (C) '
+             # TODO: copyright start date, true copyright date
+             ,format(Sys.time(),'%Y')
              ,pkg$description[1,'Author']
+             ,'and possibly others.'
              ,''
              ,'The original GNU R package is maintained by'
              ,pkg$description[1,'Maintainer'],'and was obtained from:'
              ,''
-             ,paste('    ',contrib.url(getOption("repos")))
+             ,pkg$repoURL
              ,''
              ,''
              ,'The GNU R package DESCRIPTION offers a'
@@ -207,7 +240,7 @@ prepare.new.debian <- function(pkg) {
         shlibdep = '${shlibs:Depends}'
     }
     control = data.frame()
-    control[1,'Source'] = pkg$name
+    control[1,'Source'] = pkg$srcname
     control[1,'Section'] = 'math'
     control[1,'Priority'] = 'optional'
     control[1,'Maintainer'] = maintainer
@@ -223,8 +256,13 @@ prepare.new.debian <- function(pkg) {
         control[2,'Architecture'] = 'any'
     }
     control[2,'Depends'] = paste('r-base-core', shlibdep, sep=', ')
-    control[2,'Description'] = paste('GNU R package "'
-                                    ,pkg$description[1,'Title'],'"\n'
+    descr = 'GNU R package "'
+    if ('Title' %in% colnames(pkg$description)) {
+        descr = paste(descr,pkg$description[1,'Title'],sep='')
+    } else {
+        descr = paste(descr,pkg$name,sep='')
+    }
+    control[2,'Description'] = paste(descr,'"\n'
                                     ,pkg$description[1,'Description']
                                     ,sep='')
     # Debian policy says 72 char width; indent minimally
@@ -245,18 +283,23 @@ build.debian <- function(pkg) {
     setwd(wd)
 }
 
-cleanup <- function(dir) {
-    unlink(dir, recursive=T)
 
-    invisible()
-}
-
-
-test <- function(name) {
+go <- function(name) {
     dir <- setup()
+    pkg <- try((function() {
         pkg <- prepare.new.debian(prepare.pkg(dir,name))
         build.debian(pkg)
-#    cleanup(dir)
+        return(pkg)
+    })())
+    cleanup(dir)
+    if (inherits(pkg,'try-error')) {
+        stop(call.=F)
+    }
     return(pkg)
 }
 
+if (exists('argv')) { # check for littler
+    for (arg in argv) {
+        go(arg)
+    }
+}
