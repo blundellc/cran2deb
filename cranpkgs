@@ -1,0 +1,2 @@
+#!/usr/bin/env r
+writeLines(sample(dimnames(available.packages(contriburl=contrib.url('http://cran.uk.r-project.org/')))[[1]],100))
