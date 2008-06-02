@@ -1,5 +1,7 @@
 #!/usr/bin/env r
 
+use_pbuilder <- 1
+
 version.new <- function(rver,debian_revision=1, debian_epoch=0) {
     # generate a string representation of the Debian version of an
     # R version of a package
@@ -279,7 +281,11 @@ build.debian <- function(pkg) {
                  ,pkg$debname
                  ,paste('(',pkg$debversion,')',sep='')
                  ,'...'))
-    system('debuild -us -uc -b')
+    if (use_pbuilder) {
+        system('pdebuild -b')
+    } else {
+        system('debuild -us -uc -b')
+    }
     setwd(wd)
 }
 
@@ -291,6 +297,16 @@ go <- function(name) {
         build.debian(pkg)
         return(pkg)
     })())
+    if (!inherits(pkg,'try-error')) {
+        # TODO: copy away the results from pkg$path/../
+        # <srcname>_<upstreamversion>.orig.tar.gz
+        # <srcname>_<debversion>.diff.gz
+        # <srcname>_<debversion>.dsc
+        # <srcname>_<debversion>_<arch>.build
+        # <srcname>_<debversion>_source.changes
+        # <srcname>_<debversion>_source.changes
+        # <debname>_<debversion>_<arch>.deb
+    }
     cleanup(dir)
     if (inherits(pkg,'try-error')) {
         stop(call.=F)
