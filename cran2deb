@@ -1,6 +1,7 @@
 #!/usr/bin/env r
 
 use_pbuilder <- 1
+pbuilder_results <- '/var/cache/pbuilder/result'
 
 version.new <- function(rver,debian_revision=1, debian_epoch=0) {
     # generate a string representation of the Debian version of an
@@ -129,6 +130,10 @@ chomp <- function(x) {
     return(sub('^[[:space:]]+','',sub('[[:space:]]+$','',x)))
 }
 
+host.arch <- function() {
+    system('dpkg-architecture -qDEB_HOST_ARCH',intern=T)
+}
+
 prepare.new.debian <- function(pkg) {
     maintainer = 'cran2deb buildbot <cran2deb@example.org>'
 
@@ -236,9 +241,13 @@ prepare.new.debian <- function(pkg) {
     # says: ``The sources and headers for the compiled code are in src, plus
     # optionally file Makevars or Makefile.'' It seems unlikely that
     # architecture independent code would end up here.
-    archdep = file.exists(paste(pkg$path,'src',sep='/'))
+    pkg$archdep = file.exists(paste(pkg$path,'src',sep='/'))
+    pkg$arch <- 'all'
+    if (pkg$archdep) {
+        pkg$arch <- host.arch()
+    }
     shlibdep = ''
-    if (archdep) {
+    if (pkg$archdep) {
         shlibdep = '${shlibs:Depends}'
     }
     control = data.frame()
@@ -254,7 +263,7 @@ prepare.new.debian <- function(pkg) {
 
     control[2,'Package'] = pkg$debname
     control[2,'Architecture'] = 'all'
-    if (archdep) {
+    if (pkg$archdep) {
         control[2,'Architecture'] = 'any'
     }
     control[2,'Depends'] = paste('r-base-core', shlibdep, sep=', ')
@@ -282,11 +291,16 @@ build.debian <- function(pkg) {
                  ,paste('(',pkg$debversion,')',sep='')
                  ,'...'))
     if (use_pbuilder) {
-        system('pdebuild -b')
+        # resulting files are in
+        # /var/cache/pbuilder/
+        ret = system('pdebuild')
     } else {
-        system('debuild -us -uc -b')
+        ret = system('debuild -us -uc -b')
     }
     setwd(wd)
+    if (ret != 0) {
+        stop('Failed to build package.')
+    }
 }
 
 
@@ -295,18 +309,28 @@ go <- function(name) {
     pkg <- try((function() {
         pkg <- prepare.new.debian(prepare.pkg(dir,name))
         build.debian(pkg)
+        message('N: running lintian')
+        upfiles=c(
+                paste(pkg$srcname,'_',pkg$debversion,'.dsc',sep='')
+               ,paste(pkg$srcname,'_',pkg$debversion,'_',host.arch(),'.changes',sep='')
+               ,paste(pkg$debname,'_',pkg$debversion,'_',pkg$arch,'.deb',sep=''))
+        if (use_pbuilder) {
+            rp = pbuilder_results
+        } else {
+            rp = paste(pkg$path,'/..',sep='')
+        }
+        for (file in upfiles) {
+            ret = system(paste('lintian -v ',rp,'/',file,sep=''))
+            if (ret != 0) {
+                break
+            }
+        }
+        message('N: lintian done')
+        if (ret != 0) {
+            stop('lintian failed!')
+        }
         return(pkg)
     })())
-    if (!inherits(pkg,'try-error')) {
-        # TODO: copy away the results from pkg$path/../
-        # <srcname>_<upstreamversion>.orig.tar.gz
-        # <srcname>_<debversion>.diff.gz
-        # <srcname>_<debversion>.dsc
-        # <srcname>_<debversion>_<arch>.build
-        # <srcname>_<debversion>_source.changes
-        # <srcname>_<debversion>_source.changes
-        # <debname>_<debversion>_<arch>.deb
-    }
     cleanup(dir)
     if (inherits(pkg,'try-error')) {
         stop(call.=F)
