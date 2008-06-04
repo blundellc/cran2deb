@@ -163,7 +163,7 @@ prepare.new.debian <- function(pkg) {
     cat(paste(paste(pkg$srcname,' (',pkg$debversion,') unstable; urgency=low',sep='')
              ,'' ,'  * Initial release.',''
              ,paste(' --',maintainer,'',format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z'))
-             ,'',sep='\n'),file=debfile('changelog'))
+             ,'',sep='\n'),file=debfile('changelog.in'))
     cat(paste('#!/usr/bin/make -f'
              ,'include /usr/share/R/debian/r-cran.mk'
              ,'',sep='\n')
@@ -233,7 +233,7 @@ prepare.new.debian <- function(pkg) {
                    ,pkg$debname
                    ,'DESCRIPTION'
                    ,sep='/')
-             ,sep='\n'), width=72), con=debfile('copyright'))
+             ,sep='\n'), width=72), con=debfile('copyright.in'))
 
     # heuristic: if /src/ exists in pkg$path, then this is an
     #            architecture-dependent package.
@@ -277,9 +277,16 @@ prepare.new.debian <- function(pkg) {
                                     ,pkg$description[1,'Description']
                                     ,sep='')
     # Debian policy says 72 char width; indent minimally
-    write.dcf(control,file=debfile('control'),indent=1,width=72)
+    write.dcf(control,file=debfile('control.in'),indent=1,width=72)
     # TODO: debian/watch
 
+    # convert text to utf8 (who knows what the original character set is --
+    # let's hope icon DTRT).
+    for (file in c('control','changelog','copyright')) {
+        system(paste('iconv -o ',shQuote(debfile(file))
+                    ,' -t utf8 '
+                    ,shQuote(debfile(paste(file,'in',sep='.')))))
+    }
     return(pkg)
 }
 
