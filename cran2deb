@@ -115,16 +115,35 @@ prepare.pkg <- function(dir, pkgname,repo='cran',repoURL='http://cran.uk.r-proje
     return(pkg)
 }
 
-debian_ok_licenses=c('GPL','LGPL','AGPL','Artistic','Unlimited')
-# these are commonly found 'in the wild'. the R packages should be fixed...
-debian_wild_licenses=c('gpl version 2 or newer'
-                      ,'gpl version 2 or later'
-                      ,'gnu gpl'
-                      ,'gpl v2'
-                      ,'gpl (version 2 or later)'
-                      ,'gpl version 2'
-                      ,'gpl 2 or later'
-                      ,'gpl2')
+debian_ok_licenses=c('GPL','LGPL','AGPL','ARTISTIC','UNLIMITED','BSD')
+
+is_acceptable_license <- function(license) {
+    # compress spaces into a single space
+    license = gsub('[[:space:]]+',' ',license)
+    # make all characters upper case
+    license = toupper(license)
+    # don't care about versions of licenses
+    license = chomp(sub('\\([<=>!]+[[:space:]]*[0-9.]+\\)',''
+                    ,sub('-[0-9.]+','',license)))
+    if (license %in% debian_ok_licenses) {
+        return(T)
+    }
+    # remove all punctuation
+    license = gsub('[[:punct:]]+','',license)
+    # remove everything that looks like a version specification
+    license = gsub('(VERSION|V)? *[0-9.]+ *(OR *(LATER|NEWER))?',''
+                   ,license)
+    # remove any extra space
+    license = chomp(gsub('[[:space:]]+',' ',license))
+    if (license %in% debian_ok_licenses) {
+        message(paste('W: Accepted wild license as',license,'. FIX THE PACKAGE!'))
+        return(T)
+    }
+    # TODO: put debian_ok_licenses in DB
+    # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
+    message(paste('E: Wild license',license,'did not match'))
+    return(F)
+}
 
 chomp <- function(x) {
     return(sub('^[[:space:]]+','',sub('[[:space:]]+$','',x)))
@@ -177,27 +196,15 @@ prepare.new.debian <- function(pkg) {
     accept=NULL
     for (license in strsplit(chomp(pkg$description[1,'License'])
                             ,'[[:space:]]*\\|[[:space:]]*')[[1]]) {
-
-        # don't care about versions of licenses
-        license0 = chomp(sub('\\([<=>!]+[[:space:]]*[0-9.]+\\)',''
-                        ,sub('-[0-9.]+','',license)))
-        if (license0 %in% debian_ok_licenses) {
+        if (is_acceptable_license(license)) {
             accept=license
             break
         }
-        license0 = sub('\\.$','',tolower(license0))
-        if (license0 %in% debian_wild_licenses) {
-            message('Accepted wild license. FIX THE PACKAGE!')
-            accept=license
-            break
-        }
-        # TODO: put debian_ok_licenses in DB
-        # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
     }
     if (is.null(accept)) {
         stop(paste('No acceptable license:',pkg$description[1,'License']))
     } else {
-        message(paste('Auto-accepted license',accept))
+        message(paste('N: Auto-accepted license',accept))
     }
     if (accept == 'Unlimited') {
         # definition of Unlimited from ``Writing R extensions''
@@ -293,7 +300,7 @@ prepare.new.debian <- function(pkg) {
 build.debian <- function(pkg) {
     wd <- getwd()
     setwd(pkg$path)
-    message(paste('building Debian package'
+    message(paste('N: building Debian package'
                  ,pkg$debname
                  ,paste('(',pkg$debversion,')',sep='')
                  ,'...'))
