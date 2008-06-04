@@ -112,6 +112,7 @@ prepare.pkg <- function(dir, pkgname,repo='cran',repoURL='http://cran.uk.r-proje
     pkg$repo = repo
     pkg$repoURL = repoURL
     pkg$version = pkg$description[1,'Version']
+    # TODO: re-pack into a Debian-named archive with a Debian-named directory.
     return(pkg)
 }
 
@@ -156,40 +157,32 @@ host.arch <- function() {
 prepare.new.debian <- function(pkg) {
     maintainer = 'cran2deb buildbot <cran2deb@example.org>'
 
-    if (!length(grep('\\.tar\\.gz',pkg$archive))) {
-        stop('archive is not tarball')
-    }
-    debarchive= paste(dirname(pkg$archive),'/'
-                             ,pkg$name,'_'
-                             ,pkg$version,'.orig.tar.gz'
-                             ,sep='')
-    file.rename(pkg$archive, debarchive)
-    pkg$archive = debarchive
-    # not sure can rename directory from R(!)
+    # generate Debian version and name
     pkg$debversion = version.new(pkg$version)
     if (!length(grep('^[A-Za-z0-9][A-Za-z0-9+.-]+$',pkg$name))) {
         stop(paste('Cannot convert package name into a Debian name',pkg$name))
     }
-    pkg$debname = paste('r',tolower(pkg$repo),tolower(pkg$name),sep='-')
     pkg$srcname = tolower(pkg$name)
+    pkg$debname = paste('r',tolower(pkg$repo),pkg$srcname,sep='-')
+
+    # rename package into something Debian-friendly
+    if (!length(grep('\\.tar\\.gz',pkg$archive))) {
+        stop('archive is not tarball')
+    }
+    debarchive= paste(dirname(pkg$archive),'/'
+                             ,pkg$srcname,'_'
+                             ,pkg$version,'.orig.tar.gz'
+                             ,sep='')
+    file.rename(pkg$archive, debarchive)
+    pkg$archive = debarchive
+
+    # make the debian/ directory
     debdir <- paste(pkg$path,'debian',sep='/')
     debfile <- function(x) { paste(debdir,x,sep='/') }
     unlink(debdir,recursive=T)
     dir.create(debdir)
 
-    # TODO: ``Writing R extensions'' mentions that a package may also have
-    # {NEWS,ChangeLog} files.
-    cat(paste(paste(pkg$srcname,' (',pkg$debversion,') unstable; urgency=low',sep='')
-             ,'' ,'  * Initial release.',''
-             ,paste(' --',maintainer,'',format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z'))
-             ,'',sep='\n'),file=debfile('changelog.in'))
-    cat(paste('#!/usr/bin/make -f'
-             ,'include /usr/share/R/debian/r-cran.mk'
-             ,'',sep='\n')
-       ,file=debfile('rules'))
-    Sys.chmod(debfile('rules'),'0700')
-
-    # if License: is missing, we must stop!
+    # check the license
     if (!('License' %in% names(pkg$description[1,]))) {
         stop('package has no License: field in description!')
     }
@@ -211,6 +204,21 @@ prepare.new.debian <- function(pkg) {
         accept=paste('Unlimited (no restrictions on distribution or'
                     ,'use other than those imposed by relevant laws)')
     }
+
+    # construct a dummy changelog
+    # TODO: ``Writing R extensions'' mentions that a package may also have
+    # {NEWS,ChangeLog} files.
+    cat(paste(paste(pkg$srcname,' (',pkg$debversion,') unstable; urgency=low',sep='')
+             ,'' ,'  * Initial release.',''
+             ,paste(' --',maintainer,'',format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z'))
+             ,'',sep='\n'),file=debfile('changelog.in'))
+    cat(paste('#!/usr/bin/make -f'
+             ,'include /usr/share/R/debian/r-cran.mk'
+             ,'',sep='\n')
+       ,file=debfile('rules'))
+    Sys.chmod(debfile('rules'),'0700')
+
+    # generate copyright file; we trust DESCRIPTION
     writeLines(strwrap(
         paste('This Debian package of the GNU R package',pkg$name
              ,'was generated automatically using cran2deb by'
@@ -242,6 +250,7 @@ prepare.new.debian <- function(pkg) {
                    ,sep='/')
              ,sep='\n'), width=72), con=debfile('copyright.in'))
 
+    # see if this is an architecture-dependent package.
     # heuristic: if /src/ exists in pkg$path, then this is an
     #            architecture-dependent package.
     # CRAN2DEB.pm is a bit fancier about this but ``Writing R extensions''
@@ -253,6 +262,8 @@ prepare.new.debian <- function(pkg) {
     if (pkg$archdep) {
         pkg$arch <- host.arch()
     }
+
+    # construct control file
     shlibdep = ''
     if (pkg$archdep) {
         shlibdep = '${shlibs:Depends}'
@@ -288,7 +299,7 @@ prepare.new.debian <- function(pkg) {
     # TODO: debian/watch
 
     # convert text to utf8 (who knows what the original character set is --
-    # let's hope icon DTRT).
+    # let's hope iconv DTRT).
     for (file in c('control','changelog','copyright')) {
         system(paste('iconv -o ',shQuote(debfile(file))
                     ,' -t utf8 '
@@ -306,9 +317,10 @@ build.debian <- function(pkg) {
                  ,'...'))
     if (use_pbuilder) {
         # resulting files are in
-        # /var/cache/pbuilder/
+        # /var/cache/pbuilder/result/
         ret = system('pdebuild')
     } else {
+        # results not kept
         ret = system('debuild -us -uc -b')
     }
     setwd(wd)
