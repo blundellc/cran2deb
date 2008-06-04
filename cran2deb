@@ -1,6 +1,6 @@
 #!/usr/bin/env r
 
-use_pbuilder <- 1
+use_pbuilder <- 0
 pbuilder_results <- '/var/cache/pbuilder/result'
 
 version.new <- function(rver,debian_revision=1, debian_epoch=0) {
@@ -88,6 +88,9 @@ prepare.pkg <- function(dir, pkgname,repo='cran',repoURL='http://cran.uk.r-proje
     # based loosely on library/utils/R/packages2.R::install.packages
     # should do nothing Debian specific
     archive <- download.packages(pkgname, dir, repos=repoURL, type="source")[1,2]
+    if (length(grep('\\.\\.',archive)) || normalizePath(archive) != archive) {
+        stop(paste('funny looking path',archive))
+    }
     wd <- getwd()
     setwd(dir)
     if (length(grep('\\.zip$',archive))) {
@@ -108,11 +111,13 @@ prepare.pkg <- function(dir, pkgname,repo='cran',repoURL='http://cran.uk.r-proje
     pkg$path = sub("_\\.(zip|tar\\.gz)", ""
                   ,gsub(.standard_regexps()$valid_package_version, ""
                   ,archive))
+    if (!file.info(pkg$path)[,'isdir']) {
+        stop(paste(pkg$path,'is not a directory and should be.'))
+    }
     pkg$description = read.dcf(paste(pkg$path,'DESCRIPTION',sep='/'))
     pkg$repo = repo
     pkg$repoURL = repoURL
     pkg$version = pkg$description[1,'Version']
-    # TODO: re-pack into a Debian-named archive with a Debian-named directory.
     return(pkg)
 }
 
@@ -170,15 +175,30 @@ prepare.new.debian <- function(pkg) {
     pkg$srcname = tolower(pkg$name)
     pkg$debname = paste('r',tolower(pkg$repo),pkg$srcname,sep='-')
 
-    # rename package into something Debian-friendly
     if (!length(grep('\\.tar\\.gz',pkg$archive))) {
         stop('archive is not tarball')
     }
-    debarchive= paste(dirname(pkg$archive),'/'
-                             ,pkg$srcname,'_'
-                             ,pkg$version,'.orig.tar.gz'
-                             ,sep='')
-    file.rename(pkg$archive, debarchive)
+
+    # re-pack into a Debian-named archive with a Debian-named directory.
+    debpath = paste(dirname(pkg$archive),'/'
+                   ,pkg$srcname,'-'
+                   ,pkg$version
+                   ,sep='')
+    file.rename(pkg$path, debpath)
+    pkg$path = debpath
+    debarchive = paste(dirname(pkg$archive),'/'
+                              ,pkg$srcname,'_'
+                              ,pkg$version,'.orig.tar.gz'
+                              ,sep='')
+    wd <- getwd()
+    setwd(dirname(pkg$path))
+    # remove them pesky +x files
+    system(paste('find',shQuote(basename(pkg$path))
+                ,'-type f -exec chmod -x {} \\;'))
+    # tar it all back up
+    system(paste('tar -czf',shQuote(debarchive),shQuote(basename(pkg$path))))
+    setwd(wd)
+    file.remove(pkg$archive)
     pkg$archive = debarchive
 
     # make the debian/ directory
