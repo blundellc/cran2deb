@@ -116,7 +116,8 @@ prepare.pkg <- function(dir, pkgname,repo='cran',repoURL='http://cran.uk.r-proje
     return(pkg)
 }
 
-debian_ok_licenses=c('GPL','LGPL','AGPL','ARTISTIC','UNLIMITED','BSD')
+debian_ok_licenses=c('GPL','LGPL','AGPL','ARTISTIC','UNLIMITED'
+                    ,'BSD','MIT','APACHE')
 
 is_acceptable_license <- function(license) {
     # compress spaces into a single space
@@ -129,10 +130,14 @@ is_acceptable_license <- function(license) {
     if (license %in% debian_ok_licenses) {
         return(T)
     }
+    # redundant
+    license = gsub('LICEN[SC]E','',license)
+    license = gsub('(GNU )?(GPL|GENERAL PUBLIC)','GPL',license)
+    license = gsub('HTTP://WWW.GNU.ORG/[A-Z/.-]*','',license)
     # remove all punctuation
     license = gsub('[[:punct:]]+','',license)
     # remove everything that looks like a version specification
-    license = gsub('(VERSION|V)? *[0-9.]+ *(OR *(LATER|NEWER))?',''
+    license = gsub('(VERSION|V)? *[0-9.]+ *(OR *(LATER|NEWER|GREATER|ABOVE))?',''
                    ,license)
     # remove any extra space
     license = chomp(gsub('[[:space:]]+',' ',license))
