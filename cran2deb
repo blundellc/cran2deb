@@ -1,7 +1,8 @@
 #!/usr/bin/env r
 
-use_pbuilder <- 0
+use_pbuilder <- 1
 pbuilder_results <- '/var/cache/pbuilder/result'
+pbuilder_config <- '/home/cb/work/gsoc/cran2deb/pbuilderrc'
 
 version.new <- function(rver,debian_revision=1, debian_epoch=0) {
     # generate a string representation of the Debian version of an
@@ -73,6 +74,35 @@ version.update <- function(rver, prev_pkgver) {
                       ))
 }
 
+# cd r-base-2.7.0/src/library
+# find . -maxdepth 1 -type d  | sed -e 's,^..,'',' -e 's/$/'', /' | tr -d '\n'
+# XXX: has to be a better way of doing this
+base_pkgs=c('splines', 'stats4', 'Recommended', 'grid', 'base'
+           ,'graphics', 'profile', 'stats', 'grDevices', 'datasets'
+           ,'utils', 'tools', 'tcltk', 'methods')
+
+pkgname.as.debian <- function(name,repo=NULL,version=NULL,binary=T) {
+    if (name %in% base_pkgs) {
+        name = 'R'
+    }
+    if (name == 'R') {
+        # R is special.
+        if (binary) {
+            debname='r-base-core'
+        } else {
+            debname='r-base-dev'
+        }
+    } else {
+        # TODO: if repo is NULL, then search for it in cran/bioc/etc
+        # see ./src/library/tools/R/pkgDepends.R in R source
+        debname = paste('r',tolower(repo),tolower(name),sep='-')
+    }
+    if (!is.null(version) && length(version) > 1) {
+        debname = paste(debname,' (',version,')',sep='')
+    }
+    return(debname)
+}
+
 setup <- function() {
     tmp <- tempfile('cran2deb')
     dir.create(tmp)
@@ -122,29 +152,36 @@ prepare.pkg <- function(dir, pkgname,repo='cran',repoURL='http://cran.uk.r-proje
 }
 
 debian_ok_licenses=c('GPL','LGPL','AGPL','ARTISTIC','UNLIMITED'
-                    ,'BSD','MIT','APACHE')
+                    ,'BSD','MIT','APACHE','X11','MPL')
 
 is_acceptable_license <- function(license) {
     # compress spaces into a single space
-    license = gsub('[[:space:]]+',' ',license)
+    license = gsub('[[:blank:]]+',' ',license)
     # make all characters upper case
     license = toupper(license)
     # don't care about versions of licenses
-    license = chomp(sub('\\([<=>!]+[[:space:]]*[0-9.]+\\)',''
+    license = chomp(sub('\\( ?[<=>!]+ ?[0-9.]+ ?\\)',''
                     ,sub('-[0-9.]+','',license)))
     if (license %in% debian_ok_licenses) {
         return(T)
     }
-    # redundant
-    license = gsub('LICEN[SC]E','',license)
-    license = gsub('(GNU )?(GPL|GENERAL PUBLIC)','GPL',license)
+    # uninteresting urls
     license = gsub('HTTP://WWW.GNU.ORG/[A-Z/.-]*','',license)
+    license = gsub('HTTP://WWW.X.ORG/[A-Z/.-]*','',license)
     # remove all punctuation
     license = gsub('[[:punct:]]+','',license)
+    # remove any extra space introduced
+    license = chomp(gsub('[[:space:]]+',' ',license))
+    # redundant
+    license = gsub('THE','',license)
+    license = gsub('STANDARD','',license)
+    license = gsub('LICEN[SC]E','',license)
+    license = gsub('(GNU )?(GPL|GENERAL PUBLIC)','GPL',license)
+    license = gsub('(MOZILLA )?(MPL|MOZILLA PUBLIC)','MPL',license)
     # remove everything that looks like a version specification
-    license = gsub('(VERSION|V)? *[0-9.]+ *(OR *(LATER|NEWER|GREATER|ABOVE))?',''
+    license = gsub('(VERSION|V)? *[0-9.]+ *(OR *(HIGHER|LATER|NEWER|GREATER|ABOVE))?',''
                    ,license)
-    # remove any extra space
+    # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
     if (license %in% debian_ok_licenses) {
         message(paste('W: Accepted wild license as',license,'. FIX THE PACKAGE!'))
@@ -167,13 +204,18 @@ host.arch <- function() {
 prepare.new.debian <- function(pkg) {
     maintainer = 'cran2deb buildbot <cran2deb@example.org>'
 
+    # XXX: TODO: bundles do not work.
+    if ('Bundle' %in% names(pkg$description[1,])) {
+        stop('E: TODO: bundles')
+    }
+
     # generate Debian version and name
     pkg$debversion = version.new(pkg$version)
     if (!length(grep('^[A-Za-z0-9][A-Za-z0-9+.-]+$',pkg$name))) {
         stop(paste('Cannot convert package name into a Debian name',pkg$name))
     }
     pkg$srcname = tolower(pkg$name)
-    pkg$debname = paste('r',tolower(pkg$repo),pkg$srcname,sep='-')
+    pkg$debname = pkgname.as.debian(pkg$srcname,repo=pkg$repo)
 
     if (!length(grep('\\.tar\\.gz',pkg$archive))) {
         stop('archive is not tarball')
@@ -288,20 +330,45 @@ prepare.new.debian <- function(pkg) {
         pkg$arch <- host.arch()
     }
 
-    # construct control file
-    shlibdep = ''
-    if (pkg$archdep) {
-        shlibdep = '${shlibs:Depends}'
+    # determine dependencies
+    bin.depends = list()
+    src.depends = list()
+    for (dep in strsplit(chomp(pkg$description[1,'Depends'])
+                              ,'[[:space:]]*,[[:space:]]*')[[1]]) {
+        # remove other comments
+        dep = gsub('(\\(\\)|\\([[:space:]]*[^<=>!].*\\))','',dep)
+        # squish spaces
+        dep = chomp(gsub('[[:space:]]+',' ',dep))
+        # parse version
+        pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.]+) ?\\))?$'
+        if (!length(grep(pat,dep))) {
+            stop(paste('R dependency',dep,'does not appear to be well-formed'))
+        }
+        version = sub(pat,'\\3',dep)
+        dep = sub(pat,'\\1',dep)
+        src.deb = pkgname.as.debian(dep,pkg$repo,version=version,binary=F)
+        bin.deb = pkgname.as.debian(dep,pkg$repo,version=version,binary=T)
+        bin.depends = c(bin.depends,bin.deb)
+        src.depends = c(src.depends,src.deb)
     }
+    src.depends=unique(src.depends)
+    bin.depends=unique(bin.depends)
+    if (!length(grep('^r-base',src.depends))) {
+        src.depends = c(src.depends,pkgname.as.debian('R',version='>= 2.7.0',binary=F))
+        bin.depends = c(bin.depends,pkgname.as.debian('R',version='>= 2.7.0',binary=T))
+    }
+    src.depends=c(src.depends,'debhelper (>> 4.1.0)','cdbs')
+    if (pkg$archdep) {
+        bin.depends=c(bin.depends,'${shlibs:Depends}')
+    }
+
+    # construct control file
     control = data.frame()
     control[1,'Source'] = pkg$srcname
     control[1,'Section'] = 'math'
     control[1,'Priority'] = 'optional'
     control[1,'Maintainer'] = maintainer
-    control[1,'Build-Depends'] = paste('debhelper (>> 4.1.0)'
-                                      ,'r-base-dev (>= 2.7.0)'
-                                      ,'cdbs'
-                                      ,sep=', ')
+    control[1,'Build-Depends'] = paste(src.depends,collapse=', ')
     control[1,'Standards-Version'] = '3.7.3.0'
 
     control[2,'Package'] = pkg$debname
@@ -309,7 +376,7 @@ prepare.new.debian <- function(pkg) {
     if (pkg$archdep) {
         control[2,'Architecture'] = 'any'
     }
-    control[2,'Depends'] = paste('r-base-core', shlibdep, sep=', ')
+    control[2,'Depends'] = paste(bin.depends,collapse=', ')
     descr = 'GNU R package "'
     if ('Title' %in% colnames(pkg$description)) {
         descr = paste(descr,pkg$description[1,'Title'],sep='')
@@ -323,6 +390,7 @@ prepare.new.debian <- function(pkg) {
     control[2,'Description'] = descr
     # Debian policy says 72 char width; indent minimally
     write.dcf(control,file=debfile('control.in'),indent=1,width=72)
+    write.dcf(control,indent=1,width=72)
     # TODO: debian/watch
 
     # convert text to utf8 (who knows what the original character set is --
@@ -346,7 +414,7 @@ build.debian <- function(pkg) {
     if (use_pbuilder) {
         # resulting files are in
         # /var/cache/pbuilder/result/
-        ret = system('pdebuild')
+        ret = system(paste('pdebuild --configfile',pbuilder_config))
     } else {
         # results not kept
         ret = system('debuild -us -uc -b')
