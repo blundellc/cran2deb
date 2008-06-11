@@ -1,6 +1,5 @@
 #!/usr/bin/env r
 
-use_pbuilder <- 1
 pbuilder_results <- '/var/cache/pbuilder/result'
 pbuilder_config <- '/home/cb/work/gsoc/cran2deb/pbuilderrc'
 
@@ -411,14 +410,7 @@ build.debian <- function(pkg) {
                  ,pkg$debname
                  ,paste('(',pkg$debversion,')',sep='')
                  ,'...'))
-    if (use_pbuilder) {
-        # resulting files are in
-        # /var/cache/pbuilder/result/
-        ret = system(paste('pdebuild --configfile',pbuilder_config))
-    } else {
-        # results not kept
-        ret = system('debuild -us -uc -b')
-    }
+    ret = system(paste('pdebuild --configfile',pbuilder_config))
     setwd(wd)
     if (ret != 0) {
         stop('Failed to build package.')
@@ -436,11 +428,7 @@ go <- function(name) {
                 paste(pkg$srcname,'_',pkg$debversion,'.dsc',sep='')
                ,paste(pkg$srcname,'_',pkg$debversion,'_',host.arch(),'.changes',sep='')
                ,paste(pkg$debname,'_',pkg$debversion,'_',pkg$arch,'.deb',sep=''))
-        if (use_pbuilder) {
-            rp = pbuilder_results
-        } else {
-            rp = paste(pkg$path,'/..',sep='')
-        }
+        rp = pbuilder_results
         for (file in upfiles) {
             ret = system(paste('lintian -v ',rp,'/',file,sep=''))
             if (ret != 0) {

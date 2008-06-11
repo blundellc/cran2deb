@@ -1,0 +1,11 @@
+#!/usr/bin/rc
+for (x in `{find etc -type f -name '*.in'}) {
+    y=`{echo $x | sed -e 's,.in$,,'}
+    sed -e 's:@ROOT@:'^`pwd^':g' <$x >$y
+}
+mkdir -p var/incoming var/archive
+mode=create
+if ([ -e /var/cache/pbuilder/base.tgz ]) {
+    mode=update
+}
+sudo pbuilder $mode --configfile `pwd^/etc/pbuilderrc

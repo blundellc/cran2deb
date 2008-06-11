@@ -1,0 +1,4 @@
+HOOKDIR=@ROOT@/etc/hook
+BUILDRESULT=@ROOT@/var/incoming
+EXTRAPACKAGES='debhelper r-base-dev cdbs r-base-core lintian'
+DISTRIBUTION=lenny

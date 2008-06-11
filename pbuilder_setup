@@ -1,9 +1,0 @@
-#!/usr/bin/rc
-
-mode=create
-if ([ -e /var/cache/pbuilder/base.tgz ]) {
-    mode=update
-}
-#sudo cowbuilder --$mode --hookdir /usr/share/doc/pbuilder/examples/workaround/ --distribution lenny --debootstrap cdebootstrap --basepath /var/cache/pbuilder/base.cow --extrapackages 'debhelper r-base-dev cdbs r-base-core lintian'
-sudo pbuilder $mode --distribution lenny --extrapackages 'debhelper r-base-dev cdbs r-base-core lintian'
-

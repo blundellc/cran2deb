@@ -1,0 +1,7 @@
+[local]                                                                                                                                          
+method = local                                                                                                                                   
+incoming = @ROOT@/var/incoming
+allow_non-us_software = 1                                                                                                                        
+run_dinstall = 0                                                                                                                                 
+post_upload_command = /usr/bin/mini-dinstall --batch -c @ROOT@/etc/mini-dinstall.conf
+allow_unsigned_uploads = 1
