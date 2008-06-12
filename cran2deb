@@ -1,7 +1,8 @@
 #!/usr/bin/env r
 
-pbuilder_results <- '/var/cache/pbuilder/result'
-pbuilder_config <- '/home/cb/work/gsoc/cran2deb/pbuilderrc'
+pbuilder_results <- '/home/cb/work/gsoc/cran2deb/var/results'
+pbuilder_config <- '/home/cb/work/gsoc/cran2deb/etc/pbuilderrc'
+dput_config <- '/home/cb/work/gsoc/cran2deb/etc/dput.cf'
 
 version.new <- function(rver,debian_revision=1, debian_epoch=0) {
     # generate a string representation of the Debian version of an
@@ -332,26 +333,28 @@ prepare.new.debian <- function(pkg) {
     # determine dependencies
     bin.depends = list()
     src.depends = list()
-    for (dep in strsplit(chomp(pkg$description[1,'Depends'])
-                              ,'[[:space:]]*,[[:space:]]*')[[1]]) {
-        # remove other comments
-        dep = gsub('(\\(\\)|\\([[:space:]]*[^<=>!].*\\))','',dep)
-        # squish spaces
-        dep = chomp(gsub('[[:space:]]+',' ',dep))
-        # parse version
-        pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.]+) ?\\))?$'
-        if (!length(grep(pat,dep))) {
-            stop(paste('R dependency',dep,'does not appear to be well-formed'))
+    if ('Depends' %in% names(pkg$description[1,])) {
+        for (dep in strsplit(chomp(pkg$description[1,'Depends'])
+                                  ,'[[:space:]]*,[[:space:]]*')[[1]]) {
+            # remove other comments
+            dep = gsub('(\\(\\)|\\([[:space:]]*[^<=>!].*\\))','',dep)
+            # squish spaces
+            dep = chomp(gsub('[[:space:]]+',' ',dep))
+            # parse version
+            pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.]+) ?\\))?$'
+            if (!length(grep(pat,dep))) {
+                stop(paste('R dependency',dep,'does not appear to be well-formed'))
+            }
+            version = sub(pat,'\\3',dep)
+            dep = sub(pat,'\\1',dep)
+            src.deb = pkgname.as.debian(dep,pkg$repo,version=version,binary=F)
+            bin.deb = pkgname.as.debian(dep,pkg$repo,version=version,binary=T)
+            bin.depends = c(bin.depends,bin.deb)
+            src.depends = c(src.depends,src.deb)
         }
-        version = sub(pat,'\\3',dep)
-        dep = sub(pat,'\\1',dep)
-        src.deb = pkgname.as.debian(dep,pkg$repo,version=version,binary=F)
-        bin.deb = pkgname.as.debian(dep,pkg$repo,version=version,binary=T)
-        bin.depends = c(bin.depends,bin.deb)
-        src.depends = c(src.depends,src.deb)
+        src.depends=unique(src.depends)
+        bin.depends=unique(bin.depends)
     }
-    src.depends=unique(src.depends)
-    bin.depends=unique(bin.depends)
     if (!length(grep('^r-base',src.depends))) {
         src.depends = c(src.depends,pkgname.as.debian('R',version='>= 2.7.0',binary=F))
         bin.depends = c(bin.depends,pkgname.as.debian('R',version='>= 2.7.0',binary=T))
@@ -423,22 +426,15 @@ go <- function(name) {
     pkg <- try((function() {
         pkg <- prepare.new.debian(prepare.pkg(dir,name))
         build.debian(pkg)
-        message('N: running lintian')
-        upfiles=c(
-                paste(pkg$srcname,'_',pkg$debversion,'.dsc',sep='')
-               ,paste(pkg$srcname,'_',pkg$debversion,'_',host.arch(),'.changes',sep='')
-               ,paste(pkg$debname,'_',pkg$debversion,'_',pkg$arch,'.deb',sep=''))
-        rp = pbuilder_results
-        for (file in upfiles) {
-            ret = system(paste('lintian -v ',rp,'/',file,sep=''))
-            if (ret != 0) {
-                break
-            }
-        }
-        message('N: lintian done')
+        ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
+                    ,paste('/', pbuilder_results, '/'
+                          ,paste(pkg$srcname,'_',pkg$debversion,'_'
+                                ,host.arch(),'.changes',sep=''), sep='')))
         if (ret != 0) {
-            stop('lintian failed!')
+            stop('upload failed!')
         }
+# paste(pkg$srcname,'_',pkg$debversion,'.dsc',sep='')
+# paste(pkg$debname,'_',pkg$debversion,'_',pkg$arch,'.deb',sep='')
         return(pkg)
     })())
     cleanup(dir)

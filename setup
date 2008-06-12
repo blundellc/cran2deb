@@ -1,11 +1,18 @@
 #!/usr/bin/rc
+umask 022
+root=`pwd
 for (x in `{find etc -type f -name '*.in'}) {
     y=`{echo $x | sed -e 's,.in$,,'}
-    sed -e 's:@ROOT@:'^`pwd^':g' <$x >$y
+    sed -e 's:@ROOT@:'^$root^':g' <$x >$y
 }
-mkdir -p var/incoming var/archive
+mkdir -p var/results
+if ([ ! -e var/archive ]) {
+    # I symbolically link this into /var/www/
+    mkdir var/archive
+}
+mini-dinstall --batch -c $root/etc/mini-dinstall.conf || exit 1
 mode=create
 if ([ -e /var/cache/pbuilder/base.tgz ]) {
     mode=update
 }
-sudo pbuilder $mode --configfile `pwd^/etc/pbuilderrc
+sudo pbuilder $mode --override-config --configfile $root/etc/pbuilderrc

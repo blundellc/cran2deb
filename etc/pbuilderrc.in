@@ -1,4 +1,7 @@
 HOOKDIR=@ROOT@/etc/hook
-BUILDRESULT=@ROOT@/var/incoming
+BUILDRESULT=@ROOT@/var/results
 EXTRAPACKAGES='debhelper r-base-dev cdbs r-base-core lintian'
 DISTRIBUTION=lenny
+OTHERMIRROR='deb http://localhost/users/cb/cran2deb/ unstable/$(ARCH)/'
+MIRRORSITE='http://ftp.debian.org/debian/'
+APTCACHE=''

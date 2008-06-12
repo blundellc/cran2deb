@@ -1,3 +1,12 @@
-archive_dir = @ROOT@/var/archive
+[DEFAULT]
+architectures = all, i386
+use_dnotify = 0
+verify_sigs = 0
+mail_on_success = 0
+archive_style = simple-subdir
+mail_log_level = NONE
+archivedir = @ROOT@/var/archive
 logfile = @ROOT@/var/mini-dinstall.log
+
+[unstable]
 
