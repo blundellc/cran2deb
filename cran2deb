@@ -6,6 +6,9 @@ pbuilder_config  <- paste(root,'/etc/pbuilderrc',sep='')
 dput_config      <- paste(root,'/etc/dput.cf',sep='')
 dinstall_config  <- paste(root,'/etc/mini-dinstall.conf',sep='')
 dinstall_archive <- paste(root,'/var/archive',sep='')
+default_repo     <- 'cran'
+default_repo_url <- 'http://cran.uk.r-project.org/'
+r_depend_fields  <- c('Depends','Imports') # Suggests, Enhances
 
 version.new <- function(rver,debian_revision=1, debian_epoch=0) {
     # generate a string representation of the Debian version of an
@@ -117,7 +120,7 @@ cleanup <- function(dir) {
     invisible()
 }
 
-prepare.pkg <- function(dir, pkgname,repo='cran',repoURL='http://cran.uk.r-project.org/') {
+prepare.pkg <- function(dir, pkgname,repo=default_repo,repoURL=default_repo_url) {
     # based loosely on library/utils/R/packages2.R::install.packages
     # should do nothing Debian specific
     archive <- download.packages(pkgname, dir, repos=repoURL, type="source")[1,2]
@@ -202,6 +205,83 @@ chomp <- function(x) {
 
 host.arch <- function() {
     system('dpkg-architecture -qDEB_HOST_ARCH',intern=T)
+}
+
+r.dependencies.of <- function(name=NULL,description=NULL,available) {
+    if (is.null(description) && is.null(name)) {
+        stop('must specify either a description or a name.')
+    }
+    if (is.null(description)) {
+        description <- data.frame()
+        if (!(name %in% dimnames(available)[[1]])) {
+            stop(paste('package',name,'is not available from',repoURL))
+        }
+        # keep only the interesting fields
+        for (field in r_depend_fields) {
+            if (!(field %in% names(available[name,]))) {
+                next
+            }
+            description[1,field] = available[name,field]
+        }
+    }
+    # extract the dependencies from the description
+    deps <- data.frame()
+    for (field in r_depend_fields) {
+        if (!(field %in% names(description[1,]))) {
+            next
+        }
+        message(paste('examining description field',field,':',paste(description,collapse=', ')))
+        for (dep in strsplit(chomp(description[1,field])
+                                  ,'[[:space:]]*,[[:space:]]*')[[1]]) {
+            if (is.na(dep)) {
+                # XXX: this may be a bug, but for some reason NA's appear in
+                #      this field at the end?
+                next
+            }
+            # remove other comments
+            dep = gsub('(\\(\\)|\\([[:space:]]*[^<=>!].*\\))','',dep)
+            # squish spaces
+            dep = chomp(gsub('[[:space:]]+',' ',dep))
+            # parse version
+            pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.]+) ?\\))?$'
+            if (!length(grep(pat,dep))) {
+                stop(paste('R dependency',dep,'does not appear to be well-formed'))
+            }
+            version = sub(pat,'\\3',dep)
+            dep = sub(pat,'\\1',dep)
+            deps <- rbind(deps,data.frame(list(name=dep,version=version)))
+        }
+    }
+    return (deps)
+}
+
+r.dependency.closure <- function(fringe,available,repo=default_repo) {
+    closure <- list()
+    fringe <- levels(fringe$name)
+    while(length(fringe) > 0) {
+        message(paste('fringe is',paste(fringe,collapse=', ')))
+        message(paste('closure is',paste(closure,collapse=', ')))
+        # pop off the top
+        top <- fringe[[1]]
+        if (length(fringe) > 1) {
+            fringe <- fringe[2:length(fringe)]
+        } else {
+            fringe <- list()
+        }
+        src <- pkgname.as.debian(top,repo=repo,binary=F)
+        message(paste('considering',top,'with source',src))
+        if (!length(grep('^r-',src)) || length(grep('^r-base',src))) {
+            message('...dropped')
+            next
+        }
+        message('...kept!')
+        # TODO: cross-repo dependencies
+        newdeps <- levels(r.dependencies.of(name=top,available=available)$name)
+        closure=c(closure,top)
+        fringe=c(fringe,newdeps)
+    }
+    # build order
+    return(rev(unique(closure)))
 }
 
 prepare.new.debian <- function(pkg) {
@@ -334,49 +414,37 @@ prepare.new.debian <- function(pkg) {
     }
 
     # determine dependencies
+    avail <- available.packages(contriburl=contrib.url(pkg$repoURL))
+    dependencies <- r.dependencies.of(description=pkg$description
+                                     ,available=avail)
+    depends <- list()
     # these are used for generating the Depends fields
-    bin.depends = list()
-    src.depends = list()
-    # these are used with dput to pull in R dependencies
-    r.depends = list()
-    for (field in c('Depends','Imports')) {
-        if (!(field %in% names(pkg$description[1,]))) {
-            next
-        }
-        for (dep in strsplit(chomp(pkg$description[1,field])
-                                  ,'[[:space:]]*,[[:space:]]*')[[1]]) {
-            # remove other comments
-            dep = gsub('(\\(\\)|\\([[:space:]]*[^<=>!].*\\))','',dep)
-            # squish spaces
-            dep = chomp(gsub('[[:space:]]+',' ',dep))
-            # parse version
-            pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.]+) ?\\))?$'
-            if (!length(grep(pat,dep))) {
-                stop(paste('R dependency',dep,'does not appear to be well-formed'))
-            }
-            version = sub(pat,'\\3',dep)
-            dep = sub(pat,'\\1',dep)
-            src.deb = pkgname.as.debian(dep,pkg$repo,version=version,binary=F)
-            bin.deb = pkgname.as.debian(dep,pkg$repo,version=version,binary=T)
-            bin.depends = c(bin.depends,bin.deb)
-            src.depends = c(src.depends,src.deb)
-            if (length(grep('^r-',src.deb)) && !length(grep('^r-base',src.deb))) {
-                r.depends = c(r.depends,tolower(dep))
-            }
-        }
+    as.deb <- function(r) {
+        return(pkgname.as.debian(dependencies[r,]$name
+                                ,version=dependencies[r,]$version))
     }
-    src.depends=unique(src.depends)
-    bin.depends=unique(bin.depends)
-    r.depends=unique(r.depends)
-    if (!length(grep('^r-base',src.depends))) {
-        src.depends = c(src.depends,pkgname.as.debian('R',version='>= 2.7.0',binary=F))
-        bin.depends = c(bin.depends,pkgname.as.debian('R',version='>= 2.7.0',binary=T))
+    depends$bin <- lapply(rownames(dependencies), as.deb, repo=repo, binary=T)
+    depends$build <- lapply(rownames(dependencies), as.deb, repo=repo, binary=F)
+
+    # make sure we depend upon R in some way...
+    if (!length(grep('^r-base',depends$build))) {
+        depends$build = c(depends$build,pkgname.as.debian('R',version='>= 2.7.0',binary=F))
+        depends$bin   = c(depends$bin,  pkgname.as.debian('R',version='>= 2.7.0',binary=T))
     }
-    src.depends=c(src.depends,'debhelper (>> 4.1.0)','cdbs')
+
+    # the names of dependent source packages (to find the .changes file to
+    # upload via dput). these can be found recursively.
+    depends$r <- r.dependency.closure(dependencies,available=avail,repo=pkg$repo)
+
+    # remove duplicates
+    depends <- lapply(depends,unique)
+
+    # append the Debian dependencies
+    depends$build=c(depends$build,'debhelper (>> 4.1.0)','cdbs')
     if (pkg$archdep) {
-        bin.depends=c(bin.depends,'${shlibs:Depends}')
+        depends$bin=c(depends$bin,'${shlibs:Depends}')
     }
-    pkg$r.depends = r.depends
+    pkg$r.depends = depends$r
 
     # construct control file
     control = data.frame()
@@ -384,7 +452,7 @@ prepare.new.debian <- function(pkg) {
     control[1,'Section'] = 'math'
     control[1,'Priority'] = 'optional'
     control[1,'Maintainer'] = maintainer
-    control[1,'Build-Depends'] = paste(src.depends,collapse=', ')
+    control[1,'Build-Depends'] = paste(depends$build,collapse=', ')
     control[1,'Standards-Version'] = '3.7.3.0'
 
     control[2,'Package'] = pkg$debname
@@ -392,13 +460,16 @@ prepare.new.debian <- function(pkg) {
     if (pkg$archdep) {
         control[2,'Architecture'] = 'any'
     }
-    control[2,'Depends'] = paste(bin.depends,collapse=', ')
+    control[2,'Depends'] = paste(depends$bin,collapse=', ')
     descr = 'GNU R package "'
     if ('Title' %in% colnames(pkg$description)) {
         descr = paste(descr,pkg$description[1,'Title'],sep='')
     } else {
         descr = paste(descr,pkg$name,sep='')
     }
+    # using \n\n.\n\n is not very nice, but is necessary to make sure
+    # the longer description does not begin on the synopsis line --- R's
+    # write.dcf does not appear to have a nicer way of doing this.
     descr = paste(descr,'"\n\n', pkg$description[1,'Description'], sep='')
     if ('URL' %in% colnames(pkg$description)) {
         descr = paste(descr,'\n\nURL: ',pkg$description[1,'URL'],sep='')
@@ -407,7 +478,8 @@ prepare.new.debian <- function(pkg) {
     # Debian policy says 72 char width; indent minimally
     write.dcf(control,file=debfile('control.in'),indent=1,width=72)
     write.dcf(control,indent=1,width=72)
-    # TODO: debian/watch
+
+    # TODO: debian/watch from pkg$repoURL
 
     # convert text to utf8 (who knows what the original character set is --
     # let's hope iconv DTRT).
