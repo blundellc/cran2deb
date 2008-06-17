@@ -80,12 +80,12 @@ version.update <- function(rver, prev_pkgver) {
                       ))
 }
 
-# cd r-base-2.7.0/src/library
-# find . -maxdepth 1 -type d  | sed -e 's,^..,'',' -e 's/$/'', /' | tr -d '\n'
+# sudo pbuilder --execute r -e 'rownames(installed.packages())'
 # XXX: has to be a better way of doing this
-base_pkgs=c('splines', 'stats4', 'Recommended', 'grid', 'base'
-           ,'graphics', 'profile', 'stats', 'grDevices', 'datasets'
-           ,'utils', 'tools', 'tcltk', 'methods')
+base_pkgs=c('base',   'datasets','grDevices','graphics','grid', 'methods'
+           ,'splines','stats',   'stats4',   'tcltk',   'tools','utils')
+# found in R source directory:
+# 'profile', 'datasets'
 
 pkgname.as.debian <- function(name,repo=NULL,version=NULL,binary=T) {
     if (name %in% base_pkgs) {
@@ -166,14 +166,14 @@ is_acceptable_license <- function(license) {
     # make all characters upper case
     license = toupper(license)
     # don't care about versions of licenses
-    license = chomp(sub('\\( ?[<=>!]+ ?[0-9.]+ ?\\)',''
-                    ,sub('-[0-9.]+','',license)))
+    license = chomp(sub('\\( ?[<=>!]+ ?[0-9.-]+ ?\\)',''
+                    ,sub('-[0-9.-]+','',license)))
     if (license %in% debian_ok_licenses) {
         return(T)
     }
     # uninteresting urls
-    license = gsub('HTTP://WWW.GNU.ORG/[A-Z/.-]*','',license)
-    license = gsub('HTTP://WWW.X.ORG/[A-Z/.-]*','',license)
+    license = gsub('\\(?HTTP://WWW.GNU.ORG/[A-Z/._-]*\\)?','',license)
+    license = gsub('\\(?HTTP://WWW.X.ORG/[A-Z/._-]*\\)?','',license)
     # remove all punctuation
     license = gsub('[[:punct:]]+','',license)
     # remove any extra space introduced
@@ -184,8 +184,14 @@ is_acceptable_license <- function(license) {
     license = gsub('LICEN[SC]E','',license)
     license = gsub('(GNU )?(GPL|GENERAL PUBLIC)','GPL',license)
     license = gsub('(MOZILLA )?(MPL|MOZILLA PUBLIC)','MPL',license)
+    # remove any extra space introduced
+    license = chomp(gsub('[[:space:]]+',' ',license))
+    if (license %in% debian_ok_licenses) {
+        message(paste('W: Accepted wild license as',license,'. FIX THE PACKAGE!'))
+        return(T)
+    }
     # remove everything that looks like a version specification
-    license = gsub('(VERSION|V)? *[0-9.]+ *(OR *(HIGHER|LATER|NEWER|GREATER|ABOVE))?',''
+    license = gsub('(VERSION|V)? *[0-9.-]+ *(OR *(HIGHER|LATER|NEWER|GREATER|ABOVE))?',''
                    ,license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
@@ -214,7 +220,7 @@ r.dependencies.of <- function(name=NULL,description=NULL,available) {
     if (is.null(description)) {
         description <- data.frame()
         if (!(name %in% dimnames(available)[[1]])) {
-            stop(paste('package',name,'is not available from',repoURL))
+            stop(paste('package',name,'is not available'))
         }
         # keep only the interesting fields
         for (field in r_depend_fields) {
@@ -242,7 +248,7 @@ r.dependencies.of <- function(name=NULL,description=NULL,available) {
             # squish spaces
             dep = chomp(gsub('[[:space:]]+',' ',dep))
             # parse version
-            pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.]+) ?\\))?$'
+            pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.-]+) ?\\))?$'
             if (!length(grep(pat,dep))) {
                 stop(paste('R dependency',dep,'does not appear to be well-formed'))
             }
