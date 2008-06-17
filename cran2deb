@@ -157,7 +157,7 @@ prepare.pkg <- function(dir, pkgname,repo=default_repo,repoURL=default_repo_url)
     return(pkg)
 }
 
-debian_ok_licenses=c('GPL','LGPL','AGPL','ARTISTIC','UNLIMITED'
+debian_ok_licenses=c('GPL','LGPL','AGPL','ARTISTIC' #,'UNLIMITED'
                     ,'BSD','MIT','APACHE','X11','MPL')
 
 is_acceptable_license <- function(license) {
@@ -230,7 +230,6 @@ r.dependencies.of <- function(name=NULL,description=NULL,available) {
         if (!(field %in% names(description[1,]))) {
             next
         }
-        message(paste('examining description field',field,':',paste(description,collapse=', ')))
         for (dep in strsplit(chomp(description[1,field])
                                   ,'[[:space:]]*,[[:space:]]*')[[1]]) {
             if (is.na(dep)) {
@@ -257,10 +256,10 @@ r.dependencies.of <- function(name=NULL,description=NULL,available) {
 
 r.dependency.closure <- function(fringe,available,repo=default_repo) {
     closure <- list()
-    fringe <- levels(fringe$name)
+    if (is.data.frame(fringe)) {
+        fringe <- levels(fringe$name)
+    }
     while(length(fringe) > 0) {
-        message(paste('fringe is',paste(fringe,collapse=', ')))
-        message(paste('closure is',paste(closure,collapse=', ')))
         # pop off the top
         top <- fringe[[1]]
         if (length(fringe) > 1) {
@@ -269,19 +268,16 @@ r.dependency.closure <- function(fringe,available,repo=default_repo) {
             fringe <- list()
         }
         src <- pkgname.as.debian(top,repo=repo,binary=F)
-        message(paste('considering',top,'with source',src))
         if (!length(grep('^r-',src)) || length(grep('^r-base',src))) {
-            message('...dropped')
             next
         }
-        message('...kept!')
         # TODO: cross-repo dependencies
         newdeps <- levels(r.dependencies.of(name=top,available=available)$name)
         closure=c(closure,top)
         fringe=c(fringe,newdeps)
     }
     # build order
-    return(rev(unique(closure)))
+    return(rev(unique(closure,fromLast=T)))
 }
 
 prepare.new.debian <- function(pkg) {
@@ -419,22 +415,20 @@ prepare.new.debian <- function(pkg) {
                                      ,available=avail)
     depends <- list()
     # these are used for generating the Depends fields
-    as.deb <- function(r) {
+    as.deb <- function(r,repo,binary) {
         return(pkgname.as.debian(dependencies[r,]$name
-                                ,version=dependencies[r,]$version))
+                                ,version=dependencies[r,]$version
+                                ,repo=repo
+                                ,binary=binary))
     }
-    depends$bin <- lapply(rownames(dependencies), as.deb, repo=repo, binary=T)
-    depends$build <- lapply(rownames(dependencies), as.deb, repo=repo, binary=F)
+    depends$bin <- lapply(rownames(dependencies), as.deb, repo=pkg$repo, binary=T)
+    depends$build <- lapply(rownames(dependencies), as.deb, repo=pkg$repo, binary=F)
 
     # make sure we depend upon R in some way...
     if (!length(grep('^r-base',depends$build))) {
         depends$build = c(depends$build,pkgname.as.debian('R',version='>= 2.7.0',binary=F))
         depends$bin   = c(depends$bin,  pkgname.as.debian('R',version='>= 2.7.0',binary=T))
     }
-
-    # the names of dependent source packages (to find the .changes file to
-    # upload via dput). these can be found recursively.
-    depends$r <- r.dependency.closure(dependencies,available=avail,repo=pkg$repo)
 
     # remove duplicates
     depends <- lapply(depends,unique)
@@ -444,7 +438,11 @@ prepare.new.debian <- function(pkg) {
     if (pkg$archdep) {
         depends$bin=c(depends$bin,'${shlibs:Depends}')
     }
-    pkg$r.depends = depends$r
+
+    # the names of dependent source packages (to find the .changes file to
+    # upload via dput). these can be found recursively.
+    pkg$r.depends = lapply(r.dependency.closure(dependencies,available=avail,repo=pkg$repo)
+                          ,tolower)
 
     # construct control file
     control = data.frame()
@@ -506,12 +504,21 @@ build.debian <- function(pkg) {
     }
 }
 
+changesfile <- function(srcname,version='*') {
+    return(paste(pbuilder_results, '/'
+                ,paste(srcname,'_',version,'_'
+                      ,host.arch(),'.changes',sep=''), sep=''))
+}
 
 # TEST: SRPM -> stashR -> digest -> filehash
 go <- function(name) {
     dir <- setup()
     pkg <- try((function() {
         pkg <- prepare.new.debian(prepare.pkg(dir,name))
+        if (file.exists(changesfile(pkg$srcname,pkg$debversion))) {
+            message(paste('N: already built',pkg$srcname,'version',pkg$debversion))
+            return(pkg)
+        }
 
         # delete the current archive (XXX: assumes mini-dinstall)
         for (subdir in c('/mini-dinstall','/unstable')) {
@@ -535,9 +542,7 @@ go <- function(name) {
         for (dep in pkg$r.depends) {
             message(paste('N: uploading',dep))
             ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
-                        ,paste(pbuilder_results, '/'
-                              ,paste(dep,'_*_'
-                                    ,host.arch(),'.changes',sep=''), sep='')))
+                        ,changesfile(dep)))
             if (ret != 0) {
                 stop('upload of dependency failed! maybe you did not build it first?')
             }
@@ -546,9 +551,7 @@ go <- function(name) {
 
         # upload the package
         ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
-                    ,paste('/', pbuilder_results, '/'
-                          ,paste(pkg$srcname,'_',pkg$debversion,'_'
-                                ,host.arch(),'.changes',sep=''), sep='')))
+                    ,changesfile(pkg$srcname,pkg$debversion)))
         if (ret != 0) {
             stop('upload failed!')
         }
@@ -563,7 +566,10 @@ go <- function(name) {
 }
 
 if (exists('argv')) { # check for littler
-    for (arg in argv) {
-        go(arg)
+    avail <- available.packages(contriburl=contrib.url(default_repo_url))
+    build_order <- r.dependency.closure(argv,available=avail,repo=default_repo)
+    message(paste('N: build order',paste(build_order,collapse=', ')))
+    for (pkg in build_order) {
+        go(pkg)
     }
 }
