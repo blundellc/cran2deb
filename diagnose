@@ -1,0 +1,68 @@
+#!/usr/bin/rc
+
+success=`{ls var/results/*.deb | wc -l}
+echo $success successful packages
+total=$success
+
+fn count_dup { sort | uniq -c | sort -n}# | awk '$1 > 1{print}' }
+fn collapse { a=`{echo $^* | sed -e 's/ | /|/g'}; echo $^a }
+echo 'warnings:'
+{for (x in warn/*) cut -d: -f3- <$x | sort -u} | awk '{print $1}' | count_dup
+echo
+
+faildep=('^Error: package ''.*'' could not be loaded'
+     '|' '^ERROR: lazy loading failed for package ''.*'''
+     '|' '^[[:space:]]*package .* is not available')
+faillic=('No acceptable license: ')
+failspc=': No space left on device'
+failbdl='TODO: bundles'
+failhdr='error: .*\.h: No such file or directory'
+faildep=`{collapse $faildep}
+faildep=$^faildep
+faillic=`{collapse $faillic}
+faillic=$^faillic
+other=''
+
+nfaildep=`{grep -El $faildep fail/* | wc -l}
+echo $nfaildep failed R dependencies.
+grep -Eh $faildep fail/* | count_dup
+other=$faildep
+total=$total+$nfaildep
+echo
+
+nfaillic=`{grep -El $faillic `{grep -EL $other fail/*} | wc -l}
+echo $nfaillic failed licenses.
+grep -Eh $faillic `{grep -EL $other fail/*} | count_dup
+other=$other^'|'^$faillic
+total=$total+$nfaillic
+echo
+
+nfailspc=`{grep -El $failspc `{grep -EL $other fail/*} | wc -l}
+echo $nfailspc out of space
+other=$other^'|'^$failspc
+total=$total+$nfailspc
+echo
+
+nfailbdl=`{grep -El $failbdl `{grep -EL $other fail/*} | wc -l}
+echo $nfailbdl bundles
+other=$other^'|'^$failbdl
+total=$total+$nfailbdl
+echo
+
+nfailhdr=`{grep -El $failhdr `{grep -EL $other fail/*} | wc -l}
+echo $nfailhdr missing C header
+other=$other^'|'^$failhdr
+total=$total+$nfailhdr
+echo
+
+nfailother=`{grep -EL $other fail/* | wc -l}
+echo $nfailother other failures.
+grep -EL $other fail/*  | xargs tail -n 50
+
+total=`{hoc -e $total}
+succrate=`{hoc -e $success/'('$total')*100'}
+echo $succrate% success rate '('$total' total)'
+total=`{hoc -e $total-$nfaillic-$nfailspc-$nfailbdl-$nfailhdr}
+succrate=`{hoc -e $success/'('$total')*100'}
+echo $succrate% success rate without licensing, space, Debian deps and bundle issues '('$total' total)'
+
