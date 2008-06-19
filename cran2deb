@@ -113,7 +113,11 @@ pkgname.as.debian <- function(name,repopref=NULL,version=NULL,binary=T) {
         # XXX: data.frame rownames are unique, so always override repopref for
         #      now.
         if (!(name %in% rownames(available))) {
-            stop(paste('package',name,'is not available'))
+            bundle <- r.bundle.of(pkgname)
+            if (is.na(bundle)) {
+                stop(paste('package',name,'is not available'))
+            }
+            name <- bundle
         }
         repopref <- repourl.as.debian(available[name,'Repository'])
         debname = paste('r',tolower(repopref),tolower(name),sep='-')
