@@ -16,3 +16,4 @@ if ([ -e /var/cache/pbuilder/base.tgz ]) {
     mode=update
 }
 sudo pbuilder $mode --override-config --configfile $root/etc/pbuilderrc
+./update_available

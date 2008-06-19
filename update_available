@@ -1,0 +1,5 @@
+#!/usr/bin/env r
+message('updating list of available R packages...')
+available <- available.packages(contrib.url('http://cran.uk.r-project.org/'))
+available <- rbind(available,available.packages(contrib.url('http://www.bioconductor.org/')))
+save(available, file='var/cache/available.cache.Rd',eval.promises=T)
