@@ -365,6 +365,42 @@ accept.license <- function(pkg) {
     return(accept)
 }
 
+get.dependencies <- function(pkg) {
+    # determine dependencies
+    dependencies <- r.dependencies.of(description=pkg$description)
+    depends <- list()
+    # these are used for generating the Depends fields
+    as.deb <- function(r,binary) {
+        return(pkgname.as.debian(dependencies[r,]$name
+                                ,version=dependencies[r,]$version
+                                ,repopref=pkg$repo
+                                ,binary=binary))
+    }
+    depends$bin <- lapply(rownames(dependencies), as.deb, binary=T)
+    depends$build <- lapply(rownames(dependencies), as.deb, binary=F)
+
+    # make sure we depend upon R in some way...
+    if (!length(grep('^r-base',depends$build))) {
+        depends$build = c(depends$build,pkgname.as.debian('R',version='>= 2.7.0',binary=F))
+        depends$bin   = c(depends$bin,  pkgname.as.debian('R',version='>= 2.7.0',binary=T))
+    }
+
+    # remove duplicates
+    depends <- lapply(depends,unique)
+
+    # append the Debian dependencies
+    depends$build=c(depends$build,'debhelper (>> 4.1.0)','cdbs')
+    if (pkg$archdep) {
+        depends$bin=c(depends$bin,'${shlibs:Depends}')
+    }
+
+    # the names of dependent source packages (to find the .changes file to
+    # upload via dput). these can be found recursively.
+    depends$r = lapply(r.dependency.closure(dependencies)
+                      ,tolower)
+    return(depends)
+}
+
 generate.changelog <- function(pkg) {
     # construct a dummy changelog
     # TODO: ``Writing R extensions'' mentions that a package may also have
@@ -403,7 +439,7 @@ generate.copyright <- function(pkg) {
              ,''
              ,''
              ,'The GNU R package DESCRIPTION offers a'
-             ,'Copyright licenses under the terms of the',accept
+             ,'Copyright licenses under the terms of the',pkg$license
              ,'license.  On a Debian GNU/Linux system, common'
              ,'licenses are included in the directory'
              ,'/usr/share/common-licenses/.'
@@ -418,59 +454,13 @@ generate.copyright <- function(pkg) {
 }
 
 generate.control <- function(pkg) {
-    # see if this is an architecture-dependent package.
-    # heuristic: if /src/ exists in pkg$path, then this is an
-    #            architecture-dependent package.
-    # CRAN2DEB.pm is a bit fancier about this but ``Writing R extensions''
-    # says: ``The sources and headers for the compiled code are in src, plus
-    # optionally file Makevars or Makefile.'' It seems unlikely that
-    # architecture independent code would end up here.
-    pkg$archdep = file.exists(file.path(pkg$path,'src'))
-    pkg$arch <- 'all'
-    if (pkg$archdep) {
-        pkg$arch <- host.arch()
-    }
-
-    # determine dependencies
-    dependencies <- r.dependencies.of(description=pkg$description)
-    depends <- list()
-    # these are used for generating the Depends fields
-    as.deb <- function(r,binary) {
-        return(pkgname.as.debian(dependencies[r,]$name
-                                ,version=dependencies[r,]$version
-                                ,repopref=pkg$repo
-                                ,binary=binary))
-    }
-    depends$bin <- lapply(rownames(dependencies), as.deb, binary=T)
-    depends$build <- lapply(rownames(dependencies), as.deb, binary=F)
-
-    # make sure we depend upon R in some way...
-    if (!length(grep('^r-base',depends$build))) {
-        depends$build = c(depends$build,pkgname.as.debian('R',version='>= 2.7.0',binary=F))
-        depends$bin   = c(depends$bin,  pkgname.as.debian('R',version='>= 2.7.0',binary=T))
-    }
-
-    # remove duplicates
-    depends <- lapply(depends,unique)
-
-    # append the Debian dependencies
-    depends$build=c(depends$build,'debhelper (>> 4.1.0)','cdbs')
-    if (pkg$archdep) {
-        depends$bin=c(depends$bin,'${shlibs:Depends}')
-    }
-
-    # the names of dependent source packages (to find the .changes file to
-    # upload via dput). these can be found recursively.
-    pkg$r.depends = lapply(r.dependency.closure(dependencies)
-                          ,tolower)
-
     # construct control file
     control = data.frame()
     control[1,'Source'] = pkg$srcname
     control[1,'Section'] = 'math'
     control[1,'Priority'] = 'optional'
     control[1,'Maintainer'] = maintainer
-    control[1,'Build-Depends'] = paste(depends$build,collapse=', ')
+    control[1,'Build-Depends'] = paste(pkg$depends$build,collapse=', ')
     control[1,'Standards-Version'] = '3.7.3.0'
 
     control[2,'Package'] = pkg$debname
@@ -478,7 +468,7 @@ generate.control <- function(pkg) {
     if (pkg$archdep) {
         control[2,'Architecture'] = 'any'
     }
-    control[2,'Depends'] = paste(depends$bin,collapse=', ')
+    control[2,'Depends'] = paste(pkg$depends$bin,collapse=', ')
     descr = 'GNU R package "'
     if ('Title' %in% colnames(pkg$description)) {
         descr = paste(descr,pkg$description[1,'Title'],sep='')
@@ -494,7 +484,7 @@ generate.control <- function(pkg) {
     }
     control[2,'Description'] = descr
     # Debian policy says 72 char width; indent minimally
-    write.dcf(control,file=debfile('control.in'),indent=1,width=72)
+    write.dcf(control,file=pkg$debfile('control.in'),indent=1,width=72)
     write.dcf(control,indent=1,width=72)
 }
 
@@ -545,8 +535,21 @@ prepare.new.debian <- function(pkg) {
     unlink(debdir,recursive=T)
     dir.create(debdir)
 
-    pkg$license <- accept.license(pkg)
+    # see if this is an architecture-dependent package.
+    # heuristic: if /src/ exists in pkg$path, then this is an
+    #            architecture-dependent package.
+    # CRAN2DEB.pm is a bit fancier about this but ``Writing R extensions''
+    # says: ``The sources and headers for the compiled code are in src, plus
+    # optionally file Makevars or Makefile.'' It seems unlikely that
+    # architecture independent code would end up here.
+    pkg$archdep = file.exists(file.path(pkg$path,'src'))
+    pkg$arch <- 'all'
+    if (pkg$archdep) {
+        pkg$arch <- host.arch()
+    }
 
+    pkg$license <- accept.license(pkg)
+    pkg$depends <- get.dependencies(pkg)
     generate.changelog(pkg)
     generate.rules(pkg)
     generate.copyright(pkg)
@@ -557,10 +560,10 @@ prepare.new.debian <- function(pkg) {
     # convert text to utf8 (who knows what the original character set is --
     # let's hope iconv DTRT).
     for (file in c('control','changelog','copyright')) {
-        system(paste('iconv -o ',shQuote(debfile(file))
+        system(paste('iconv -o ',shQuote(pkg$debfile(file))
                     ,' -t utf8 '
-                    ,shQuote(debfile(paste(file,'in',sep='.')))))
-        file.remove(debfile(paste(file,'in',sep='.')))
+                    ,shQuote(pkg$debfile(paste(file,'in',sep='.')))))
+        file.remove(pkg$debfile(paste(file,'in',sep='.')))
     }
     return(pkg)
 }
@@ -580,7 +583,7 @@ build.debian <- function(pkg) {
 }
 
 changesfile <- function(srcname,version='*') {
-    return(file.path(pbuilder_results,
+    return(file.path(pbuilder_results
                     ,paste(srcname,'_',version,'_'
                           ,host.arch(),'.changes',sep='')))
 }
@@ -612,8 +615,8 @@ go <- function(name) {
         }
 
         # pull in all the R dependencies
-        message(paste('N: dependencies:',pkg$r.depends,collapse=', '))
-        for (dep in pkg$r.depends) {
+        message(paste('N: dependencies:',pkg$depends$r,collapse=', '))
+        for (dep in pkg$depends$r) {
             message(paste('N: uploading',dep))
             ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
                         ,changesfile(dep)))
