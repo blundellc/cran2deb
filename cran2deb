@@ -2,15 +2,15 @@
 
 maintainer <- 'cran2deb buildbot <cran2deb@example.org>'
 root <- '/home/cb/work/gsoc/cran2deb'
-pbuilder_results <- paste(root,'/var/results',sep='')
-pbuilder_config  <- paste(root,'/etc/pbuilderrc',sep='')
-dput_config      <- paste(root,'/etc/dput.cf',sep='')
-dinstall_config  <- paste(root,'/etc/mini-dinstall.conf',sep='')
-dinstall_archive <- paste(root,'/var/archive',sep='')
+pbuilder_results <- file.path(root,'var/results')
+pbuilder_config  <- file.path(root,'etc/pbuilderrc')
+dput_config      <- file.path(root,'etc/dput.cf')
+dinstall_config  <- file.path(root,'etc/mini-dinstall.conf')
+dinstall_archive <- file.path(root,'var/archive')
 r_depend_fields  <- c('Depends','Imports') # Suggests, Enhances
 
 # we cache the list of available packages
-load(paste(root,'/var/cache/available.cache.Rd',sep=''))
+load(file.path(root,'var/cache/available.cache.Rd'))
 
 version.new <- function(rver,debian_revision=1, debian_epoch=0) {
     # generate a string representation of the Debian version of an
@@ -191,7 +191,7 @@ prepare.pkg <- function(dir, pkgname) {
     if (!file.info(pkg$path)[,'isdir']) {
         stop(paste(pkg$path,'is not a directory and should be.'))
     }
-    pkg$description = read.dcf(paste(pkg$path,'DESCRIPTION',sep='/'))
+    pkg$description = read.dcf(file.path(pkg$path,'DESCRIPTION'))
     pkg$repoURL = available[pkgname,'Repository']
     pkg$version = pkg$description[1,'Version']
     pkg$is_bundle = 'Bundle' %in% names(pkg$description[1,])
@@ -410,10 +410,10 @@ generate.copyright <- function(pkg) {
              ,''
              ,'The DESCRIPTION file for the original GNU R package '
              ,'can be found in '
-             ,paste('/usr/lib/R/site-library'
+             ,file.path('/usr/lib/R/site-library'
                    ,pkg$debname
                    ,'DESCRIPTION'
-                   ,sep='/')
+                   )
              ,sep='\n'), width=72), con=pkg$debfile('copyright.in'))
 }
 
@@ -425,7 +425,7 @@ generate.control <- function(pkg) {
     # says: ``The sources and headers for the compiled code are in src, plus
     # optionally file Makevars or Makefile.'' It seems unlikely that
     # architecture independent code would end up here.
-    pkg$archdep = file.exists(paste(pkg$path,'src',sep='/'))
+    pkg$archdep = file.exists(file.path(pkg$path,'src'))
     pkg$arch <- 'all'
     if (pkg$archdep) {
         pkg$arch <- host.arch()
@@ -518,16 +518,16 @@ prepare.new.debian <- function(pkg) {
     }
 
     # re-pack into a Debian-named archive with a Debian-named directory.
-    debpath = paste(dirname(pkg$archive),'/'
-                   ,pkg$srcname,'-'
-                   ,pkg$version
-                   ,sep='')
+    debpath = file.path(dirname(pkg$archive)
+                   ,paste(pkg$srcname,'-'
+                         ,pkg$version
+                         ,sep=''))
     file.rename(pkg$path, debpath)
     pkg$path = debpath
-    debarchive = paste(dirname(pkg$archive),'/'
-                              ,pkg$srcname,'_'
-                              ,pkg$version,'.orig.tar.gz'
-                              ,sep='')
+    debarchive = file.path(dirname(pkg$archive)
+                          ,paste(pkg$srcname,'_'
+                                ,pkg$version,'.orig.tar.gz'
+                                ,sep=''))
     wd <- getwd()
     setwd(dirname(pkg$path))
     # remove them pesky +x files
@@ -540,8 +540,8 @@ prepare.new.debian <- function(pkg) {
     pkg$archive = debarchive
 
     # make the debian/ directory
-    debdir <- paste(pkg$path,'debian',sep='/')
-    pkg$debfile <- function(x) { paste(debdir,x,sep='/') }
+    debdir <- file.path(pkg$path,'debian')
+    pkg$debfile <- function(x) { file.path(debdir,x) }
     unlink(debdir,recursive=T)
     dir.create(debdir)
 
@@ -580,9 +580,9 @@ build.debian <- function(pkg) {
 }
 
 changesfile <- function(srcname,version='*') {
-    return(paste(pbuilder_results, '/'
-                ,paste(srcname,'_',version,'_'
-                      ,host.arch(),'.changes',sep=''), sep=''))
+    return(file.path(pbuilder_results,
+                    ,paste(srcname,'_',version,'_'
+                          ,host.arch(),'.changes',sep='')))
 }
 
 go <- function(name) {
@@ -595,15 +595,15 @@ go <- function(name) {
         }
 
         # delete the current archive (XXX: assumes mini-dinstall)
-        for (subdir in c('/mini-dinstall','/unstable')) {
-            path = paste(dinstall_archive,subdir,sep='')
+        for (subdir in c('mini-dinstall','unstable')) {
+            path = file.path(dinstall_archive,subdir)
             if (file.exists(path)) {
                 unlink(path,recursive=T)
             }
         }
 
         # delete notes of upload
-        file.remove(Sys.glob(paste(pbuilder_results,'*.upload',sep='/')))
+        file.remove(Sys.glob(file.path(pbuilder_results,'*.upload')))
 
         # make mini-dinstall generate the skeleton of the archive
         ret = system(paste('umask 022;mini-dinstall --batch -c',dinstall_config))
