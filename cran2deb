@@ -234,12 +234,14 @@ is_acceptable_license <- function(license) {
     # uninteresting urls
     license = gsub('HTTP://WWW.GNU.ORG/[A-Z/._-]*','',license)
     license = gsub('HTTP://WWW.X.ORG/[A-Z/._-]*','',license)
+    license = gsub('HTTP://WWW.OPENSOURCE.ORG/[A-Z/._-]*','',license)
     # remove all punctuation
     license = gsub('[[:punct:]]+','',license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
     # redundant
     license = gsub('THE','',license)
+    license = gsub('SEE','',license)
     license = gsub('STANDARD','',license)
     license = gsub('LICEN[SC]E','',license)
     license = gsub('(GNU )?(GPL|GENERAL PUBLIC)','GPL',license)
