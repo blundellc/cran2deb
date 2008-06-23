@@ -2,4 +2,7 @@
 message('updating list of available R packages...')
 available <- available.packages(contrib.url('http://cran.uk.r-project.org/'))
 available <- rbind(available,available.packages(contrib.url('http://www.bioconductor.org/')))
-save(available, file='var/cache/available.cache.Rd',eval.promises=T)
+message('updating list of available R task views...')
+library(ctv)
+ctv.available <- available.views(repo='http://cran.uk.r-project.org/')
+save(available, ctv.available, file='var/cache/available.cache.Rd',eval.promises=T)

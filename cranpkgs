@@ -1,3 +1,23 @@
 #!/usr/bin/env r
-#writeLines(sample(dimnames(available.packages(contriburl=contrib.url('http://cran.uk.r-project.org/')))[[1]],300))
-writeLines(dimnames(available.packages(contriburl=contrib.url('http://cran.uk.r-project.org/')))[[1]])
+
+root <- '/home/cb/work/gsoc/cran2deb'
+# we cache the list of available packages
+load(file.path(root,'var/cache/available.cache.Rd'))
+
+if (length(argv) == 0) {
+    writeLines(sample(dimnames(available)[[1]],800))
+    #writeLines(dimnames(available)[[1]])
+} else {
+    if (argv[1] == 'query') {
+        for (ctv in ctv.available) {
+            writeLines(ctv$name)
+        }
+        q(save='no')
+    }
+    # list of task lists
+    for (ctv in ctv.available) {
+        if (ctv$name %in% argv) {
+            writeLines(ctv$packagelist$name)
+        }
+    }
+}

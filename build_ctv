@@ -1,0 +1,11 @@
+#!/usr/bin/env rc
+
+for (ctv in `{./cranpkgs query}) {
+    echo task view $ctv...
+    if (![ -e ctv/$ctv ]) {
+        ./build_some $ctv
+        mkdir -p ctv/$ctv
+        mv warn fail ctv/$ctv
+    }
+}
+

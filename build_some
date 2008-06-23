@@ -1,12 +1,12 @@
 #!/usr/bin/rc
 
 mkdir -p warn fail
-./cranpkgs >all_pkgs
+./cranpkgs $* >all_pkgs
 for (pkg in `{cat all_pkgs}) {
     if (~ $pkg *..* */*) {
         echo bad name $pkg >>fail/ERROR
     } else {
-        echo $pkg...
+        echo .. package $pkg
         fail=0
         ./cran2deb $pkg >fail/$pkg >[2=1] || fail=1
         if (~ $fail 0) {
