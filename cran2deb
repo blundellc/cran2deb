@@ -253,7 +253,7 @@ is_acceptable_license <- function(license) {
         return(T)
     }
     # remove everything that looks like a version specification
-    license = gsub('(VERSION|V)? *[0-9.-]+ *(OR *(HIGHER|LATER|NEWER|GREATER|ABOVE))?',''
+    license = gsub('(VER?SION|V)? *[0-9.-]+ *(OR *(HIGHER|LATER|NEWER|GREATER|ABOVE))?',''
                    ,license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
@@ -391,19 +391,26 @@ accept.license <- function(pkg) {
     return(accept)
 }
 
-get.dependencies <- function(pkg) {
+get.dependencies <- function(pkg,extra_deps) {
+    if ('SystemRequirements' %in% colnames(pkg$description)) {
+        stop(paste('Unsupported SystemRequirements:',pkg$description[1,'SystemRequirements']))
+    }
+
     # determine dependencies
     dependencies <- r.dependencies.of(description=pkg$description)
     depends <- list()
     # these are used for generating the Depends fields
     as.deb <- function(r,binary) {
-        return(pkgname.as.debian(dependencies[r,]$name
+        return(pkgname.as.debian(paste(dependencies[r,]$name)
                                 ,version=dependencies[r,]$version
                                 ,repopref=pkg$repo
                                 ,binary=binary))
     }
     depends$bin <- lapply(rownames(dependencies), as.deb, binary=T)
     depends$build <- lapply(rownames(dependencies), as.deb, binary=F)
+    # add the command line dependencies
+    depends$bin = c(extra_deps$deb,depends$bin)
+    depends$build = c(extra_deps$deb,depends$build)
 
     # make sure we depend upon R in some way...
     if (!length(grep('^r-base',depends$build))) {
@@ -424,6 +431,8 @@ get.dependencies <- function(pkg) {
     # upload via dput). these can be found recursively.
     depends$r = lapply(r.dependency.closure(dependencies)
                       ,tolower)
+    # append command line dependencies
+    depends$r = c(extra_deps$r, depends$r)
     return(depends)
 }
 
@@ -501,7 +510,7 @@ generate.control <- function(pkg) {
     if (pkg$is_bundle) {
         control[2,'Provides'] = paste(
                     lapply(r.bundle.contains(pkg$name)
-                          ,function(name) return(pkgname.as.debian(name
+                          ,function(name) return(pkgname.as.debian(paste(name)
                                                                   ,repopref=pkg$repo
                                                                   ,binary=T)))
                           ,collapse=', ')
@@ -533,7 +542,7 @@ generate.control <- function(pkg) {
     write.dcf(control,indent=1,width=72)
 }
 
-prepare.new.debian <- function(pkg) {
+prepare.new.debian <- function(pkg,extra_deps) {
     # generate Debian version and name
     pkg$repo = repourl.as.debian(pkg$repoURL)
     pkg$debversion = version.new(pkg$version)
@@ -600,7 +609,7 @@ prepare.new.debian <- function(pkg) {
     }
 
     pkg$license <- accept.license(pkg)
-    pkg$depends <- get.dependencies(pkg)
+    pkg$depends <- get.dependencies(pkg,extra_deps)
     generate.changelog(pkg)
     generate.rules(pkg)
     generate.copyright(pkg)
@@ -639,10 +648,10 @@ changesfile <- function(srcname,version='*') {
                           ,host.arch(),'.changes',sep='')))
 }
 
-go <- function(name) {
+go <- function(name,extra_deps) {
     dir <- setup()
     pkg <- try((function() {
-        pkg <- prepare.new.debian(prepare.pkg(dir,name))
+        pkg <- prepare.new.debian(prepare.pkg(dir,name),extra_deps)
         if (file.exists(changesfile(pkg$srcname,pkg$debversion))) {
             message(paste('N: already built',pkg$srcname,'version',pkg$debversion))
             return(pkg)
@@ -666,7 +675,7 @@ go <- function(name) {
         }
 
         # pull in all the R dependencies
-        message(paste('N: dependencies:',pkg$depends$r,collapse=', '))
+        message(paste('N: dependencies:',paste(pkg$depends$r,collapse=', ')))
         for (dep in pkg$depends$r) {
             message(paste('N: uploading',dep))
             ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
@@ -694,9 +703,40 @@ go <- function(name) {
 }
 
 if (exists('argv')) { # check for littler
-    build_order <- r.dependency.closure(argv)
+    argc <- length(argv)
+    extra_deps = list()
+    extra_deps$deb = c()
+    extra_deps$r = c()
+    opts = c('-D','-R')
+    for (i in 1:argc) {
+        if (!(argv[i] %in% opts)) {
+            if (argc >= i) {
+                argv <- argv[i:argc]
+            } else {
+                argv <- list()
+            }
+            argc = argc - i + 1
+            break
+        }
+        if (i == argc) {
+            message('E: missing argument')
+            q(save='no')
+        }
+        if (argv[i] == '-D') {
+            extra_deps$deb = c(extra_deps$deb,strsplit(chomp(argv[i+1]),',')[[1]])
+        }
+        if (argv[i] == '-R') {
+            extra_deps$r = c(extra_deps$r,strsplit(chomp(argv[i+1]),',')[[1]])
+            extra_deps$deb = c(extra_deps$deb,lapply(extra_deps$r,pkgname.as.debian))
+        }
+    }
+    if (argc == 0) {
+        message('E: usage: cran2deb [-D extra_dep1,extra_dep2,...] package package ...')
+        q(save='no')
+    }
+    build_order <- r.dependency.closure(c(extra_deps$r,argv))
     message(paste('N: build order',paste(build_order,collapse=', ')))
     for (pkg in build_order) {
-        go(pkg)
+        go(pkg,extra_deps)
     }
 }
