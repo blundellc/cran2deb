@@ -1,8 +1,10 @@
 #!/usr/bin/env r
+#mirror <- 'http://cran.uk.r-project.org/'
+mirror <- 'http://cran.r-project.org/'
 message('updating list of available R packages...')
-available <- available.packages(contrib.url('http://cran.uk.r-project.org/'))
+available <- available.packages(contrib.url(mirror))
 available <- rbind(available,available.packages(contrib.url('http://www.bioconductor.org/')))
 message('updating list of available R task views...')
 library(ctv)
-ctv.available <- available.views(repo='http://cran.uk.r-project.org/')
+ctv.available <- available.views(repo=mirror)
 save(available, ctv.available, file='var/cache/available.cache.Rd',eval.promises=T)
