@@ -267,6 +267,13 @@ is_acceptable_license <- function(license) {
     return(F)
 }
 
+iterate <- function(xs,z,fun) {
+    y <- z
+    for (x in xs)
+        y <- fun(y,x)
+    return(y)
+}
+
 chomp <- function(x) {
     # remove leading and trailing spaces
     return(sub('^[[:space:]]+','',sub('[[:space:]]+$','',x)))
@@ -277,8 +284,36 @@ host.arch <- function() {
     system('dpkg-architecture -qDEB_HOST_ARCH',intern=T)
 }
 
+r.prereq.of <- function(names) {
+    for (name in names) {
+        if (!(name %in% base_pkgs) && !(name %in% rownames(available))) {
+            bundle <- r.bundle.of(name)
+            if (is.na(bundle)) {
+                stop(paste('package',name,'is not available'))
+            }
+            names <- c(names,r.bundle.contains(bundle))
+        }
+    }
+    prereq=c()
+    for (field in r_depend_fields) {
+        # find a logical index into available of every package/bundle
+        # whose dependency field contains at least one element of names.
+        # (this is not particularly easy to read---sorry---but is much faster than
+        # the alternatives i could think of)
+        matches = sapply(sapply(strsplit(chomp(available[,field])
+                                        ,'[[:space:]]*,[[:space:]]*')
+                               ,function(xs)
+                                    sapply(xs, function(x)
+                                        return(chomp(gsub('\\([^\\)]+\\)','',x)) %in% names)))
+                        ,any)
+        prereq = c(prereq,rownames(available[matches,]))
+    }
+    return(unique(prereq))
+}
+
 r.dependencies.of <- function(name=NULL,description=NULL) {
-    # find the immediate dependencies of an R package
+    # find the immediate dependencies (children in the dependency graph) of an
+    # R package
     if (!is.null(name) && (name == 'R' || name %in% base_pkgs)) {
         return(data.frame())
     }
@@ -308,35 +343,36 @@ r.dependencies.of <- function(name=NULL,description=NULL) {
         if (!(field %in% names(description[1,]))) {
             next
         }
-        for (dep in strsplit(chomp(description[1,field])
-                                  ,'[[:space:]]*,[[:space:]]*')[[1]]) {
-            if (is.na(dep)) {
-                # XXX: this may be a bug, but for some reason NA's appear in
-                #      this field at the end?
-                next
-            }
-            # remove other comments
-            dep = gsub('(\\(\\)|\\([[:space:]]*[^<=>!].*\\))','',dep)
-            # squish spaces
-            dep = chomp(gsub('[[:space:]]+',' ',dep))
-            # parse version
-            pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.-]+) ?\\))?$'
-            if (!length(grep(pat,dep))) {
-                stop(paste('R dependency',dep,'does not appear to be well-formed'))
-            }
-            version = sub(pat,'\\3',dep)
-            dep = sub(pat,'\\1',dep)
-            if (!(dep %in% rownames(available))) {
-                depb <- r.bundle.of(dep)
-                if (!is.na(depb)) {
-                    dep <- depb
-                }
-            }
-            deps <- rbind(deps,data.frame(list(name=dep
-                                              ,version=version)))
-        }
+        new_deps <- lapply(strsplit(chomp(description[1,field])
+                                   ,'[[:space:]]*,[[:space:]]*')[[1]]
+                          ,r.parse.dep.field)
+        deps <- iterate(lapply(new_deps[!is.na(new_deps)],rbind),deps,rbind)
     }
     return (deps)
+}
+
+r.parse.dep.field <- function(dep) {
+    if (is.na(dep)) {
+        return(NA)
+    }
+    # remove other comments
+    dep = gsub('(\\(\\)|\\([[:space:]]*[^<=>!].*\\))','',dep)
+    # squish spaces
+    dep = chomp(gsub('[[:space:]]+',' ',dep))
+    # parse version
+    pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.-]+) ?\\))?$'
+    if (!length(grep(pat,dep))) {
+        stop(paste('R dependency',dep,'does not appear to be well-formed'))
+    }
+    version = sub(pat,'\\3',dep)
+    dep = sub(pat,'\\1',dep)
+    if (!(dep %in% rownames(available))) {
+        depb <- r.bundle.of(dep)
+        if (!is.na(depb)) {
+            dep <- depb
+        }
+    }
+    return(list(name=dep,version=version))
 }
 
 r.dependency.closure <- function(fringe) {
