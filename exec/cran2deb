@@ -1,0 +1,94 @@
+#!/usr/bin/env r
+library(cran2deb)
+go <- function(name,extra_deps) {
+    dir <- setup()
+    pkg <- try((function() {
+        pkg <- prepare.new.debian(prepare.pkg(dir,name),extra_deps)
+        if (file.exists(changesfile(pkg$srcname,pkg$debversion))) {
+            message(paste('N: already built',pkg$srcname,'version',pkg$debversion))
+            return(pkg)
+        }
+
+        # delete the current archive (XXX: assumes mini-dinstall)
+        for (subdir in c('mini-dinstall','unstable')) {
+            path = file.path(dinstall_archive,subdir)
+            if (file.exists(path)) {
+                unlink(path,recursive=T)
+            }
+        }
+
+        # delete notes of upload
+        file.remove(Sys.glob(file.path(pbuilder_results,'*.upload')))
+
+        # make mini-dinstall generate the skeleton of the archive
+        ret = system(paste('umask 022;mini-dinstall --batch -c',dinstall_config))
+        if (ret != 0) {
+            stop('failed to create archive')
+        }
+
+        # pull in all the R dependencies
+        message(paste('N: dependencies:',paste(pkg$depends$r,collapse=', ')))
+        for (dep in pkg$depends$r) {
+            message(paste('N: uploading',dep))
+            ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
+                        ,changesfile(dep)))
+            if (ret != 0) {
+                stop('upload of dependency failed! maybe you did not build it first?')
+            }
+        }
+        build.debian(pkg)
+
+        # upload the package
+        ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
+                    ,changesfile(pkg$srcname,pkg$debversion)))
+        if (ret != 0) {
+            stop('upload failed!')
+        }
+
+        return(pkg)
+    })())
+    cleanup(dir)
+    if (inherits(pkg,'try-error')) {
+        stop(call.=F)
+    }
+    return(pkg)
+}
+
+if (exists('argv')) { # check for littler
+    argc <- length(argv)
+    extra_deps = list()
+    extra_deps$deb = c()
+    extra_deps$r = c()
+    opts = c('-D','-R')
+    for (i in 1:argc) {
+        if (!(argv[i] %in% opts)) {
+            if (argc >= i) {
+                argv <- argv[i:argc]
+            } else {
+                argv <- list()
+            }
+            argc = argc - i + 1
+            break
+        }
+        if (i == argc) {
+            message('E: missing argument')
+            q(save='no')
+        }
+        if (argv[i] == '-D') {
+            extra_deps$deb = c(extra_deps$deb,strsplit(chomp(argv[i+1]),',')[[1]])
+        }
+        if (argv[i] == '-R') {
+            extra_deps$r = c(extra_deps$r,strsplit(chomp(argv[i+1]),',')[[1]])
+            extra_deps$deb = c(extra_deps$deb,lapply(extra_deps$r,pkgname.as.debian))
+        }
+    }
+    if (argc == 0) {
+        message('E: usage: cran2deb [-D extra_dep1,extra_dep2,...] package package ...')
+        q(save='no')
+    }
+    build_order <- r.dependency.closure(c(extra_deps$r,argv))
+    message(paste('N: build order',paste(build_order,collapse=', ')))
+    for (pkg in build_order) {
+        go(pkg,extra_deps)
+    }
+}

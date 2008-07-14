@@ -1,6 +1,6 @@
 #!/usr/bin/rc
 umask 022
-root=`pwd
+root=`{r -e 'library(cran2deb);cat(system.file('''',package=''cran2deb''),file=stdout())'}
 for (x in `{find etc -type f -name '*.in'}) {
     y=`{echo $x | sed -e 's,.in$,,'}
     sed -e 's:@ROOT@:'^$root^':g' <$x >$y

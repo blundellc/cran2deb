@@ -1,8 +1,6 @@
 #!/usr/bin/env r
 
-root <- '/home/cb/work/gsoc/cran2deb'
-# we cache the list of available packages
-load(file.path(root,'var/cache/available.cache.Rd'))
+library(cran2deb)
 
 if (length(argv) == 0) {
     writeLines(sample(dimnames(available)[[1]],800))
