@@ -1,0 +1,6 @@
+#!/usr/bin/rc
+echo usage: cran2deb '<cmd> [args ...]'
+echo where '<cmd>' is one of
+ls $1/exec
+echo
+echo installation root is: $1

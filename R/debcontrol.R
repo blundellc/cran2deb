@@ -25,7 +25,7 @@ get.dependencies <- function(pkg,extra_deps) {
         depends$bin   = c(depends$bin,  pkgname.as.debian('R',version='>= 2.7.0',binary=T))
     }
     # also include stuff to allow tcltk to build (suggested by Dirk)
-    depends$build = c(depends$build,'xvfb','xauth','xfont-base')
+    depends$build = c(depends$build,'xvfb','xauth','xfonts-base')
 
     # remove duplicates
     depends <- lapply(depends,unique)

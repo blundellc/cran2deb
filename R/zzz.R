@@ -6,7 +6,7 @@ changesfile <- function(srcname,version='*') {
 }
 
 maintainer <- 'cran2deb buildbot <cran2deb@example.org>'
-root <- system.file('')
+root <- system.file(package='cran2deb')
 pbuilder_results <- file.path(root,'var/results')
 pbuilder_config  <- file.path(root,'etc/pbuilderrc')
 dput_config      <- file.path(root,'etc/dput.cf')

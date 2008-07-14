@@ -1,14 +1,15 @@
 #!/usr/bin/rc
 umask 022
-root=`{r -e 'library(cran2deb);cat(system.file('''',package=''cran2deb''),file=stdout())'}
-for (x in `{find etc -type f -name '*.in'}) {
+root=$1
+shift
+for (x in `{find $root/etc -type f -name '*.in'}) {
     y=`{echo $x | sed -e 's,.in$,,'}
     sed -e 's:@ROOT@:'^$root^':g' <$x >$y
 }
-mkdir -p var/results
-if ([ ! -e var/archive ]) {
+mkdir -p $root/var/results
+if ([ ! -e $root/var/archive ]) {
     # I symbolically link this into /var/www/
-    mkdir var/archive
+    mkdir $root/var/archive
 }
 mini-dinstall --batch -c $root/etc/mini-dinstall.conf || exit 1
 mode=create
@@ -16,4 +17,4 @@ if ([ -e /var/cache/pbuilder/base.tgz ]) {
     mode=update
 }
 sudo pbuilder $mode --override-config --configfile $root/etc/pbuilderrc
-./update_available
+$root/exec/update_cache $root

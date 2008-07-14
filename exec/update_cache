@@ -1,11 +1,11 @@
 #!/usr/bin/env r
+library(cran2deb)
+library(ctv)
 #mirror <- 'http://cran.uk.r-project.org/'
 mirror <- 'http://cran.r-project.org/'
 message('updating list of available R packages...')
 available <- available.packages(contrib.url(mirror))
 available <- rbind(available,available.packages(contrib.url('http://www.bioconductor.org/')))
 message('updating list of available R task views...')
-library(ctv)
 ctv.available <- available.views(repo=mirror)
-library(cran2deb)
-save(available, ctv.available, file=system.file('R/sysdata.rda',package='cran2deb'),eval.promises=T)
+save(available, ctv.available, file=file.path(argv[1],'R/sysdata.rda'),eval.promises=T)

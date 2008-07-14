@@ -5,6 +5,7 @@ Title: Convert CRAN packages into Debian packages
 Author: Charles Blundell <blundellc@gmail.com>, with assistance from Dirk Eddelbuettel <>
 Maintainer: Charles Blundell <blundellc@gmail.com>
 Depends: ctv, utils
+SystemRequirements: rc
 Description: Convert CRAN packages into Debian packages, mostly unassisted, easily
  subverting the R package system.
 License: GPL-3

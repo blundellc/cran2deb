@@ -1,0 +1,2 @@
+#!/usr/bin/rc
+echo $1
