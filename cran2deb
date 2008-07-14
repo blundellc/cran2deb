@@ -284,7 +284,7 @@ host.arch <- function() {
     system('dpkg-architecture -qDEB_HOST_ARCH',intern=T)
 }
 
-r.prereq.of <- function(names) {
+r.requiring <- function(names) {
     for (name in names) {
         if (!(name %in% base_pkgs) && !(name %in% rownames(available))) {
             bundle <- r.bundle.of(name)
@@ -294,19 +294,32 @@ r.prereq.of <- function(names) {
             names <- c(names,r.bundle.contains(bundle))
         }
     }
+    # approximately prune first into a smaller availability
+    candidates <- available[sapply(rownames(available)
+                                  ,function(name)
+                                      length(grep(paste(names,sep='|')
+                                                 ,available[name,r_depend_fields])) > 0)
+                           ,r_depend_fields
+                           ,drop=F]
+    if (length(candidates) == 0) {
+        return(c())
+    }
+    # find a logical index into available of every package/bundle
+    # whose dependency field contains at least one element of names.
+    # (this is not particularly easy to read---sorry---but is much faster than
+    # the alternatives i could think of)
     prereq=c()
+    dep_matches <- function(dep) chomp(gsub('\\([^\\)]+\\)','',dep)) %in% names
+    any_dep_matches <- function(name,field=NA)
+                any(sapply(strsplit(chomp(candidates[name,field])
+                                   ,'[[:space:]]*,[[:space:]]*')
+                          ,dep_matches))
+
     for (field in r_depend_fields) {
-        # find a logical index into available of every package/bundle
-        # whose dependency field contains at least one element of names.
-        # (this is not particularly easy to read---sorry---but is much faster than
-        # the alternatives i could think of)
-        matches = sapply(sapply(strsplit(chomp(available[,field])
-                                        ,'[[:space:]]*,[[:space:]]*')
-                               ,function(xs)
-                                    sapply(xs, function(x)
-                                        return(chomp(gsub('\\([^\\)]+\\)','',x)) %in% names)))
-                        ,any)
-        prereq = c(prereq,rownames(available[matches,]))
+        matches = sapply(rownames(candidates), any_dep_matches, field=field)
+        if (length(matches) > 0) {
+            prereq = c(prereq,rownames(candidates[matches,]))
+        }
     }
     return(unique(prereq))
 }
@@ -375,11 +388,16 @@ r.parse.dep.field <- function(dep) {
     return(list(name=dep,version=version))
 }
 
-r.dependency.closure <- function(fringe) {
-    # find the transitive closure of the dependencies of some R packages
+r.dependency.closure <- function(fringe, forward_arcs=T) {
+    # find the transitive closure of the dependencies/prerequisites of some R
+    # packages
     closure <- list()
     if (is.data.frame(fringe)) {
         fringe <- levels(fringe$name)
+    }
+    fun = function(x) levels(r.dependencies.of(name=x)$name)
+    if (!forward_arcs) {
+        fun = r.requiring
     }
     while(length(fringe) > 0) {
         # pop off the top
@@ -393,7 +411,7 @@ r.dependency.closure <- function(fringe) {
         if (!length(grep('^r-',src)) || length(grep('^r-base',src))) {
             next
         }
-        newdeps <- levels(r.dependencies.of(name=top)$name)
+        newdeps <- fun(top)
         closure=c(closure,top)
         fringe=c(fringe,newdeps)
     }
