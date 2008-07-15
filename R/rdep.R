@@ -124,7 +124,7 @@ r.dependency.closure <- function(fringe, forward_arcs=T) {
     # packages
     closure <- list()
     if (is.data.frame(fringe)) {
-        fringe <- levels(fringe$name)
+        fringe <- as.list(fringe$name)
     }
     fun = function(x) levels(r.dependencies.of(name=x)$name)
     if (!forward_arcs) {
