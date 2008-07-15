@@ -13,7 +13,7 @@ if ([ ! -e $root/var/archive ]) {
 }
 mini-dinstall --batch -c $root/etc/mini-dinstall.conf || exit 1
 mode=create
-if ([ -e /var/cache/pbuilder/base.tgz ]) {
+if ([ -e /var/cache/pbuilder/base-cran2deb.tgz ]) {
     mode=update
 }
 sudo pbuilder $mode --override-config --configfile $root/etc/pbuilderrc

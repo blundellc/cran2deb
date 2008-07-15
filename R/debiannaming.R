@@ -1,10 +1,3 @@
-# sudo pbuilder --execute r -e 'rownames(installed.packages())'
-# XXX: has to be a better way of doing this
-base_pkgs=c('base',   'datasets','grDevices','graphics','grid', 'methods'
-           ,'splines','stats',   'stats4',   'tcltk',   'tools','utils')
-# found in R source directory:
-# 'profile', 'datasets'
-
 repourl.as.debian <- function(url) {
     # map the url to a repository onto its name in debian package naming
     if (length(grep('cran',url))) {

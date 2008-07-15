@@ -144,7 +144,7 @@ build.debian <- function(pkg) {
                  ,pkg$debname
                  ,paste('(',pkg$debversion,')',sep='')
                  ,'...'))
-    ret = system(paste('pdebuild --configfile',pbuilder_config))
+    ret = system(paste('pdebuild --configfile',shQuote(pbuilder_config)))
     setwd(wd)
     if (ret != 0) {
         stop('Failed to build package.')

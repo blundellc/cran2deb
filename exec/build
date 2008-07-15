@@ -1,5 +1,6 @@
 #!/usr/bin/env r
 suppressMessages(library(cran2deb))
+
 go <- function(name,extra_deps) {
     dir <- setup()
     pkg <- try((function() {

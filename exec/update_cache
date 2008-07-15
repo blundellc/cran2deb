@@ -3,9 +3,18 @@ library(cran2deb)
 library(ctv)
 #mirror <- 'http://cran.uk.r-project.org/'
 mirror <- 'http://cran.r-project.org/'
+
 message('updating list of available R packages...')
 available <- available.packages(contrib.url(mirror))
 available <- rbind(available,available.packages(contrib.url('http://www.bioconductor.org/')))
+
 message('updating list of available R task views...')
 ctv.available <- available.views(repo=mirror)
-save(available, ctv.available, file=file.path(argv[1],'R/sysdata.rda'),eval.promises=T)
+message('updating list of base R packages...')
+base_pkgs <- readLines(pipe(paste('sudo pbuilder --execute --override-config --configfile'
+                                 ,shQuote(pbuilder_config),'-- /usr/bin/R --vanilla 2>&1 >/dev/null <'
+                                 ,shQuote(file.path(root,'exec/get_base_pkgs'))
+                                 ,'| grep -v ^W:')))
+
+
+save(base_pkgs, available, ctv.available, file=file.path(argv[1],'data/cache.rda'),eval.promises=T)

@@ -1,3 +1,4 @@
+BASETGZ=/var/cache/pbuilder/base-cran2deb.tgz
 HOOKDIR=@ROOT@/etc/hook
 BUILDRESULT=@ROOT@/var/results
 EXTRAPACKAGES='debhelper r-base-dev cdbs r-base-core lintian xvfb xauth xfonts-base'
