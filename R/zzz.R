@@ -1,3 +1,5 @@
+library(DBI)
+library(RSQLite)
 
 changesfile <- function(srcname,version='*') {
     return(file.path(pbuilder_results
