@@ -47,13 +47,13 @@ db.add.sysreq.override <- function(pattern,debian_name) {
     db.stop(con)
 }
 
-db.license.override.name <- function(license_name) {
+db.license.override.name <- function(name) {
     con <- db.start()
     results <- dbGetQuery(con,paste(
                     'SELECT accept FROM license_override WHERE'
-                            ,db.quote(license_name),'= name'))
+                            ,db.quote(name),'= name'))
     db.stop(con)
-    return(results$debian_name)
+    return(results$accept)
 }
 
 db.add.license.override.name <- function(name,accept) {
@@ -73,7 +73,7 @@ db.license.override.file <- function(file_sha1) {
                     'SELECT accept FROM license_override WHERE'
                             ,db.quote(file_sha1),'= file_sha1'))
     db.stop(con)
-    return(results$debian_name)
+    return(results$accept)
 }
 
 db.add.license.override.file <- function(name,file_sha1,accept) {
