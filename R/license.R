@@ -1,6 +1,3 @@
-debian_ok_licenses=c('GPL','LGPL','AGPL','ARTISTIC' #,'UNLIMITED'
-                    ,'BSD','MIT','APACHE','X11','MPL')
-
 is_acceptable_license <- function(license) {
     # determine if license is acceptable
 
@@ -11,7 +8,7 @@ is_acceptable_license <- function(license) {
     # don't care about versions of licenses
     license = chomp(sub('\\( ?[<=>!]+ ?[0-9.-]+ ?\\)',''
                     ,sub('-[0-9.-]+','',license)))
-    if (license %in% debian_ok_licenses) {
+    if (db.license.override.name(license)) {
         return(T)
     }
     # uninteresting urls
@@ -31,7 +28,7 @@ is_acceptable_license <- function(license) {
     license = gsub('(MOZILLA )?(MPL|MOZILLA PUBLIC)','MPL',license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
-    if (license %in% debian_ok_licenses) {
+    if (db.license.override.name(license)) {
         message(paste('W: Accepted wild license as',license,'. FIX THE PACKAGE!'))
         return(T)
     }
@@ -40,11 +37,10 @@ is_acceptable_license <- function(license) {
                    ,license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
-    if (license %in% debian_ok_licenses) {
+    if (db.license.override.name(license)) {
         message(paste('W: Accepted wild license as',license,'. FIX THE PACKAGE!'))
         return(T)
     }
-    # TODO: put debian_ok_licenses in DB
     # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
     message(paste('E: Wild license',license,'did not match'))
     return(F)

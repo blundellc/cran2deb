@@ -73,8 +73,7 @@ if (exists('argv')) { # check for littler
             break
         }
         if (i == argc) {
-            message('E: missing argument')
-            q(save='no')
+            err('missing argument')
         }
         if (argv[i] == '-D') {
             extra_deps$deb = c(extra_deps$deb,strsplit(chomp(argv[i+1]),',')[[1]])
@@ -85,8 +84,7 @@ if (exists('argv')) { # check for littler
         }
     }
     if (argc == 0) {
-        message('E: usage: cran2deb [-D extra_dep1,extra_dep2,...] package package ...')
-        q(save='no')
+        err('usage: cran2deb [-D extra_dep1,extra_dep2,...] package package ...')
     }
     build_order <- r.dependency.closure(c(extra_deps$r,argv))
     message(paste('N: build order',paste(build_order,collapse=', ')))

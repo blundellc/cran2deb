@@ -11,9 +11,14 @@ db.start <- function() {
     }
     if (!dbExistsTable(con,'license_override')) {
         dbGetQuery(con,paste('CREATE TABLE license_override ('
-                  ,' name TEXT UNIQUE NOT NULL'
-                  ,',file_sha1 TEXT UNIQUE'
+                  ,' name TEXT PRIMARY KEY NOT NULL'
                   ,',accept INT NOT NULL'
+                  ,')'))
+    }
+    if (!dbExistsTable(con,'license_files')) {
+        dbGetQuery(con,paste('CREATE TABLE license_files ('
+                  ,' name TEXT NOT NULL'
+                  ,',file_sha1 TEXT PRIMARY KEY NOT NULL'
                   ,')'))
     }
     return(con)
@@ -53,16 +58,23 @@ db.license.override.name <- function(name) {
                     'SELECT accept FROM license_override WHERE'
                             ,db.quote(name),'= name'))
     db.stop(con)
-    return(results$accept)
+    if (length(results) == 0) {
+        return(FALSE)
+    }
+    return(as.logical(results$accept))
 }
 
-db.add.license.override.name <- function(name,accept) {
+db.add.license.override <- function(name,accept) {
+    message(paste('adding',name,'accept?',accept))
+    if (accept != TRUE && accept != FALSE) {
+        stop('accept must be TRUE or FALSE')
+    }
     con <- db.start()
     results <- dbGetQuery(con,paste(
                      'INSERT OR REPLACE INTO license_override'
                     ,'(name, accept) VALUES ('
                     ,' ',db.quote(name)
-                    ,',',db.quote(accept)
+                    ,',',as.integer(accept)
                     ,')'))
     db.stop(con)
 }
@@ -70,21 +82,34 @@ db.add.license.override.name <- function(name,accept) {
 db.license.override.file <- function(file_sha1) {
     con <- db.start()
     results <- dbGetQuery(con,paste(
-                    'SELECT accept FROM license_override WHERE'
-                            ,db.quote(file_sha1),'= file_sha1'))
+                     'SELECT name,accept FROM license_override'
+                    ,'INNER JOIN license_files'
+                    ,'ON license_files.name = license_override.name WHERE'
+                    ,db.quote(file_sha1),'= license_files.file_sha1'))
     db.stop(con)
-    return(results$accept)
+    # TODO: change accept from 0,1 into FALSE,TRUE
+    # TODO: NULL -> FALSE
+    return(results)
 }
 
-db.add.license.override.file <- function(name,file_sha1,accept) {
+db.license.overrides <- function() {
     con <- db.start()
-    results <- dbGetQuery(con,paste(
-                     'INSERT OR REPLACE INTO license_override'
-                    ,'(name, file_sha1, accept) VALUES ('
-                    ,' ',db.quote(name)
-                    ,',',db.quote(file_sha1)
-                    ,',',db.quote(accept)
-                    ,')'))
+    overrides <- dbGetQuery(con,paste('SELECT * FROM license_override'))
+    files     <- dbGetQuery(con,paste('SELECT * FROM license_files'))
+    db.stop(con)
+    # TODO: change accept from 0,1 into FALSE,TRUE
+    return(list(overrides=overrides,files=files))
+}
+
+db.add.license.file <- function(name,file_sha1) {
+    message(paste('adding file',file_sha1,'for',name))
+    con <- db.start()
+    dbGetQuery(con,paste(
+         'INSERT OR REPLACE INTO license_files'
+        ,'(name, file_sha1) VALUES ('
+        ,' ',db.quote(name)
+        ,',',db.quote(file_sha1)
+        ,')'))
     db.stop(con)
 }
 
