@@ -1,0 +1,19 @@
+add GPL
+file GPL /usr/share/common-licenses/GPL-2
+file GPL /usr/share/common-licenses/GPL-3
+add LGPL
+file LGPL /usr/share/common-licenses/LGPL-2
+file LGPL /usr/share/common-licenses/LGPL-2.1
+file LGPL /usr/share/common-licenses/LGPL-3
+add BSD
+file BSD /usr/share/common-licenses/BSD
+add ARTISTIC
+file ARTISTIC /usr/share/common-licenses/Artistic
+add APACHE
+file APACHE /usr/share/common-licenses/Apache-2.0
+add AGPL
+add MIT
+add X11
+add MPL
+add UNLIMITED deny
+ls
