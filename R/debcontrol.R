@@ -1,8 +1,4 @@
 get.dependencies <- function(pkg,extra_deps) {
-    if ('SystemRequirements' %in% colnames(pkg$description)) {
-        stop(paste('Unsupported SystemRequirements:',pkg$description[1,'SystemRequirements']))
-    }
-
     # determine dependencies
     dependencies <- r.dependencies.of(description=pkg$description)
     depends <- list()
@@ -18,6 +14,12 @@ get.dependencies <- function(pkg,extra_deps) {
     # add the command line dependencies
     depends$bin = c(extra_deps$deb,depends$bin)
     depends$build = c(extra_deps$deb,depends$build)
+    # add the system requirements
+    if ('SystemRequirements' %in% colnames(pkg$description)) {
+        sysreq <- sysreqs.as.debian(pkg$description[1,'SystemRequirements'])
+        depends$bin = c(sysreq,depends$bin)
+        depends$build = c(sysreq,depends$build)
+    }
 
     # make sure we depend upon R in some way...
     if (!length(grep('^r-base',depends$build))) {
@@ -43,6 +45,34 @@ get.dependencies <- function(pkg,extra_deps) {
     # append command line dependencies
     depends$r = c(extra_deps$r, depends$r)
     return(depends)
+}
+
+sysreqs.as.debian <- function(sysreq_text) {
+    # form of this field is unspecified (ugh) but most people seem to stick
+    # with this
+    debs <- c()
+    for (sysreq in strsplit(sysreq_text,'[[:space:]]*,[[:space:]]*')[[1]]) {
+        startreq = sysreq
+        # constant case
+        sysreq = tolower(sysreq)
+        # drop version information/comments for now
+        sysreq = gsub('[\\([][^])]*[]\\)]','',sysreq)
+        sysreq = gsub('version','',sysreq)
+        sysreq = gsub('[<>=]*[[:space:]]*[[:digit:]]+[[:digit:].+:~-]*','',sysreq)
+        # byebye URLs
+        sysreq = gsub('(ht|f)tps?://[[:alnum:]!?*"\'(),%$_@.&+/=-]*','',sysreq)
+        # squish out space
+        sysreq = chomp(gsub('[[:space:]]+',' ',sysreq))
+        deb <- db.sysreq.override(sysreq)
+        if (is.na(deb)) {
+            message(paste('E: do not know what to do with SystemRequirement:',sysreq))
+            message(paste('E: original SystemRequirement:',startreq))
+            stop('unmet system requirement')
+        }
+        message(paste('N: mapped SystemRequirement',startreq,'onto',deb,'via',sysreq))
+        debs = c(debs,deb)
+    }
+    return(debs)
 }
 
 generate.control <- function(pkg) {
