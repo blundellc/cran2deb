@@ -1,0 +1,40 @@
+#!/usr/bin/env r
+
+suppressPackageStartupMessages(library(cran2deb))
+suppressPackageStartupMessages(library(digest))
+
+exec_cmd <- function(argc, argv) {
+    usage <- function()
+        message('usage: add <debianpkg> <sysreq>|ls|quit|help')
+
+    cmd = argv[1]
+    if (argc < 1) {
+        exit()
+    }
+
+    if (cmd == 'add') {
+        if (argc < 3) {
+            usage()
+            return()
+        }
+        sysreq = paste(argv[3:argc],collapse=' ')
+        db.add.sysreq.override(sysreq,argv[2])
+    } else if (cmd == 'ls') {
+        print(db.sysreq.overrides())
+    } else if (cmd == 'help') {
+        usage()
+        return()
+    } else if (cmd == 'quit') {
+        exit()
+    }
+}
+
+argc <- length(argv)
+if (argc > 1) {
+    exec_cmd(argc-1,argv[c(2:argc)])
+} else {
+    while(T) {
+        argv <- strsplit(readline('sysreq> '),'[[:space:]]+')[[1]]
+        exec_cmd(length(argv),argv)
+    }
+}

@@ -3,8 +3,8 @@ is_acceptable_license <- function(license) {
 
     # compress spaces into a single space
     license = gsub('[[:blank:]]+',' ',license)
-    # make all characters upper case
-    license = toupper(license)
+    # make all characters lower case
+    license = tolower(license)
     # don't care about versions of licenses
     license = chomp(sub('\\( ?[<=>!]+ ?[0-9.-]+ ?\\)',''
                     ,sub('-[0-9.-]+','',license)))
@@ -12,20 +12,20 @@ is_acceptable_license <- function(license) {
         return(T)
     }
     # uninteresting urls
-    license = gsub('HTTP://WWW.GNU.ORG/[A-Z/._-]*','',license)
-    license = gsub('HTTP://WWW.X.ORG/[A-Z/._-]*','',license)
-    license = gsub('HTTP://WWW.OPENSOURCE.ORG/[A-Z/._-]*','',license)
+    license = gsub('http://www.gnu.org/[[:alnum:]/._-]*','',license)
+    license = gsub('http://www.x.org/[[:alnum:]/._-]*','',license)
+    license = gsub('http://www.opensource.org/[[:alnum]/._-]*','',license)
     # remove all punctuation
     license = gsub('[[:punct:]]+','',license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
     # redundant
-    license = gsub('THE','',license)
-    license = gsub('SEE','',license)
-    license = gsub('STANDARD','',license)
-    license = gsub('LICEN[SC]E','',license)
-    license = gsub('(GNU )?(GPL|GENERAL PUBLIC)','GPL',license)
-    license = gsub('(MOZILLA )?(MPL|MOZILLA PUBLIC)','MPL',license)
+    license = gsub('the','',license)
+    license = gsub('see','',license)
+    license = gsub('standard','',license)
+    license = gsub('licen[sc]e','',license)
+    license = gsub('(gnu )?(gpl|general public)','gpl',license)
+    license = gsub('(mozilla )?(mpl|mozilla public)','mpl',license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
     if (db.license.override.name(license)) {
@@ -33,7 +33,7 @@ is_acceptable_license <- function(license) {
         return(T)
     }
     # remove everything that looks like a version specification
-    license = gsub('(VER?SION|V)? *[0-9.-]+ *(OR *(HIGHER|LATER|NEWER|GREATER|ABOVE))?',''
+    license = gsub('(ver?sion|v)? *[0-9.-]+ *(or *(higher|later|newer|greater|above))?',''
                    ,license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
