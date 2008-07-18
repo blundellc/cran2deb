@@ -7,10 +7,10 @@ exec_cmd <- function(argc, argv) {
     usage <- function()
         message('usage: add <license> [deny]|file <license> <path>|ls|quit|help')
 
-    cmd = argv[1]
     if (argc < 1) {
         exit()
     }
+    cmd = argv[1]
 
     if (cmd == 'add') {
         if (argc != 2 && (argc != 3 || argv[3] != 'deny')) {
