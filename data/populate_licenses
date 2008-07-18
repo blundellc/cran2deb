@@ -15,5 +15,5 @@ add AGPL
 add MIT
 add X11
 add MPL
-add UNLIMITED deny
+add UNLIMITED reject
 ls

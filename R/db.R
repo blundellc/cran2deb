@@ -39,6 +39,9 @@ db.sysreq.override <- function(sysreq_text) {
                     'SELECT debian_name FROM sysreq_override WHERE'
                             ,db.quote(sysreq_text),'GLOB r_pattern'))
     db.stop(con)
+    if (length(results) == 0) {
+        return(NA)
+    }
     return(results$debian_name)
 }
 
@@ -71,7 +74,7 @@ db.license.override.name <- function(name) {
                             ,db.quote(name),'= name'))
     db.stop(con)
     if (length(results) == 0) {
-        return(FALSE)
+        return(NA)
     }
     return(as.logical(results$accept))
 }
@@ -102,7 +105,7 @@ db.license.override.file <- function(file_sha1) {
                     ,db.quote(file_sha1),'= license_files.file_sha1'))
     db.stop(con)
     # TODO: change accept from 0,1 into FALSE,TRUE
-    # TODO: NULL -> FALSE
+    # TODO: NULL -> NA
     return(results)
 }
 

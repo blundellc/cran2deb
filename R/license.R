@@ -8,8 +8,9 @@ is_acceptable_license <- function(license) {
     # don't care about versions of licenses
     license = chomp(sub('\\( ?[<=>!]+ ?[0-9.-]+ ?\\)',''
                     ,sub('-[0-9.-]+','',license)))
-    if (db.license.override.name(license)) {
-        return(T)
+    action = db.license.override.name(license)
+    if (!is.na(action)) {
+        return(action)
     }
     # uninteresting urls
     license = gsub('http://www.gnu.org/[[:alnum:]/._-]*','',license)
@@ -28,21 +29,23 @@ is_acceptable_license <- function(license) {
     license = gsub('(mozilla )?(mpl|mozilla public)','mpl',license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
-    if (db.license.override.name(license)) {
-        message(paste('W: Accepted wild license as',license,'. FIX THE PACKAGE!'))
-        return(T)
+    action = db.license.override.name(license)
+    if (!is.na(action)) {
+        message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
+        return(action)
     }
     # remove everything that looks like a version specification
     license = gsub('(ver?sion|v)? *[0-9.-]+ *(or *(higher|later|newer|greater|above))?',''
                    ,license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
-    if (db.license.override.name(license)) {
-        message(paste('W: Accepted wild license as',license,'. FIX THE PACKAGE!'))
-        return(T)
+    action = db.license.override.name(license)
+    if (!is.na(action)) {
+        message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
+        return(action)
     }
     # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
-    message(paste('E: Wild license',license,'did not match'))
+    message(paste('E: Wild license',license,'did not match; rejecting'))
     return(F)
 }
 
