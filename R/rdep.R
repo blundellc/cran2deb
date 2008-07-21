@@ -137,7 +137,7 @@ r.dependency.closure <- function(fringe, forward_arcs=T) {
             fringe <- list()
         }
         src <- pkgname.as.debian(top,binary=F)
-        if (!length(grep('^r-',src)) || length(grep('^r-base',src))) {
+        if (src == 'R') {
             next
         }
         newdeps <- fun(top)

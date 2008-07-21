@@ -9,7 +9,7 @@ repourl.as.debian <- function(url) {
     stop(paste('unknown repository',url))
 }
 
-pkgname.as.debian <- function(name,repopref=NULL,version=NULL,binary=T) {
+pkgname.as.debian <- function(name,repopref=NULL,version=NULL,binary=T,build=F) {
     # generate the debian package name corresponding to the R package name
     if (name %in% base_pkgs) {
         name = 'R'
@@ -17,9 +17,13 @@ pkgname.as.debian <- function(name,repopref=NULL,version=NULL,binary=T) {
     if (name == 'R') {
         # R is special.
         if (binary) {
-            debname='r-base-core'
+            if (build) {
+                debname='r-base-dev'
+            } else {
+                debname='r-base-core'
+            }
         } else {
-            debname='r-base-dev'
+            debname='R'
         }
     } else {
         # XXX: data.frame rownames are unique, so always override repopref for
@@ -31,8 +35,11 @@ pkgname.as.debian <- function(name,repopref=NULL,version=NULL,binary=T) {
             }
             name <- bundle
         }
-        repopref <- repourl.as.debian(available[name,'Repository'])
-        debname = paste('r',tolower(repopref),tolower(name),sep='-')
+        debname = tolower(name)
+        if (binary) {
+            repopref <- tolower(repourl.as.debian(available[name,'Repository']))
+            debname = paste('r',repopref,debname,sep='-')
+        }
     }
     if (!is.null(version) && length(version) > 1) {
         debname = paste(debname,' (',version,')',sep='')

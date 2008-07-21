@@ -3,14 +3,14 @@ get.dependencies <- function(pkg,extra_deps) {
     dependencies <- r.dependencies.of(description=pkg$description)
     depends <- list()
     # these are used for generating the Depends fields
-    as.deb <- function(r,binary) {
+    as.deb <- function(r,build) {
         return(pkgname.as.debian(paste(dependencies[r,]$name)
                                 ,version=dependencies[r,]$version
                                 ,repopref=pkg$repo
-                                ,binary=binary))
+                                ,build=build))
     }
-    depends$bin <- lapply(rownames(dependencies), as.deb, binary=T)
-    depends$build <- lapply(rownames(dependencies), as.deb, binary=F)
+    depends$bin <- lapply(rownames(dependencies), as.deb, build=F)
+    depends$build <- lapply(rownames(dependencies), as.deb, build=T)
     # add the command line dependencies
     depends$bin = c(extra_deps$deb,depends$bin)
     depends$build = c(extra_deps$deb,depends$build)
@@ -23,8 +23,8 @@ get.dependencies <- function(pkg,extra_deps) {
 
     # make sure we depend upon R in some way...
     if (!length(grep('^r-base',depends$build))) {
-        depends$build = c(depends$build,pkgname.as.debian('R',version='>= 2.7.0',binary=F))
-        depends$bin   = c(depends$bin,  pkgname.as.debian('R',version='>= 2.7.0',binary=T))
+        depends$build = c(depends$build,pkgname.as.debian('R',version='>= 2.7.0',build=T))
+        depends$bin   = c(depends$bin,  pkgname.as.debian('R',version='>= 2.7.0',build=F))
     }
     # also include stuff to allow tcltk to build (suggested by Dirk)
     depends$build = c(depends$build,'xvfb','xauth','xfonts-base')
@@ -40,8 +40,7 @@ get.dependencies <- function(pkg,extra_deps) {
 
     # the names of dependent source packages (to find the .changes file to
     # upload via dput). these can be found recursively.
-    depends$r = lapply(r.dependency.closure(dependencies)
-                      ,tolower)
+    depends$r = r.dependency.closure(dependencies)
     # append command line dependencies
     depends$r = c(extra_deps$r, depends$r)
     return(depends)
@@ -103,8 +102,7 @@ generate.control <- function(pkg) {
         control[2,'Provides'] = paste(
                     lapply(r.bundle.contains(pkg$name)
                           ,function(name) return(pkgname.as.debian(paste(name)
-                                                                  ,repopref=pkg$repo
-                                                                  ,binary=T)))
+                                                                  ,repopref=pkg$repo)))
                           ,collapse=', ')
     }
 
