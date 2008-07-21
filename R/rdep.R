@@ -26,12 +26,10 @@ r.requiring <- function(names) {
         }
     }
     # approximately prune first into a smaller availability
-    candidates <- available[sapply(rownames(available)
-                                  ,function(name)
-                                      length(grep(paste(names,sep='|')
-                                                 ,available[name,r_depend_fields])) > 0)
-                           ,r_depend_fields
-                           ,drop=F]
+    candidates <- rownames(available)[sapply(rownames(available)
+                                            ,function(name)
+                                                length(grep(paste(names,sep='|')
+                                                           ,available[name,r_depend_fields])) > 0)]
     if (length(candidates) == 0) {
         return(c())
     }
@@ -42,14 +40,14 @@ r.requiring <- function(names) {
     prereq=c()
     dep_matches <- function(dep) chomp(gsub('\\([^\\)]+\\)','',dep)) %in% names
     any_dep_matches <- function(name,field=NA)
-                any(sapply(strsplit(chomp(candidates[name,field])
+                any(sapply(strsplit(chomp(available[name,field])
                                    ,'[[:space:]]*,[[:space:]]*')
                           ,dep_matches))
 
     for (field in r_depend_fields) {
-        matches = sapply(rownames(candidates), any_dep_matches, field=field)
+        matches = sapply(candidates, any_dep_matches, field=field)
         if (length(matches) > 0) {
-            prereq = c(prereq,rownames(candidates[matches,]))
+            prereq = c(prereq,candidates[matches])
         }
     }
     return(unique(prereq))

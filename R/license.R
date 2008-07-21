@@ -15,7 +15,7 @@ is_acceptable_license <- function(license) {
     # uninteresting urls
     license = gsub('http://www.gnu.org/[[:alnum:]/._-]*','',license)
     license = gsub('http://www.x.org/[[:alnum:]/._-]*','',license)
-    license = gsub('http://www.opensource.org/[[:alnum]/._-]*','',license)
+    license = gsub('http://www.opensource.org/[[:alnum:]/._-]*','',license)
     # remove all punctuation
     license = gsub('[[:punct:]]+','',license)
     # remove any extra space introduced

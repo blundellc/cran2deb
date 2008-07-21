@@ -50,6 +50,8 @@ go <- function(name,extra_deps) {
     })())
     cleanup(dir)
     if (inherits(pkg,'try-error')) {
+        message(paste('E: failure of',name,'means these packages will fail:'
+                     ,paste(r.dependency.closure(name,forward_arcs=F),collapse=', ')))
         stop(call.=F)
     }
     return(pkg)
