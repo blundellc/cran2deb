@@ -35,6 +35,10 @@ go <- function(name,extra_deps) {
         # pull in all the R dependencies
         message(paste('N: dependencies:',paste(pkg$depends$r,collapse=', ')))
         for (dep in pkg$depends$r) {
+            if (pkgname.as.debian(dep) %in% debian_pkgs) {
+                message(paste('N: using Debian package of',dep))
+                next
+            }
             message(paste('N: uploading',dep))
             ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
                         ,changesfile(dep)))
