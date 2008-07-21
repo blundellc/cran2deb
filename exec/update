@@ -19,3 +19,4 @@ if ([ -e /var/cache/pbuilder/base-cran2deb.tgz ]) {
 sudo pbuilder $mode --override-config --configfile $root/etc/pbuilderrc
 $root/exec/update_cache $root
 $root/exec/license <$root/data/populate_licenses
+$root/exec/sysreq <$root/data/populate_sysreq

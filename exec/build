@@ -5,6 +5,11 @@ go <- function(name,extra_deps) {
     dir <- setup()
     pkg <- try((function() {
         pkg <- prepare.new.debian(prepare.pkg(dir,name),extra_deps)
+        # XXX: what about building newer versions?
+        if (pkg$debname %in% debian_pkgs) {
+            message(paste('N:',pkg$srcname,' exists in Debian (perhaps a different version)'))
+            return(pkg)
+        }
         if (file.exists(changesfile(pkg$srcname,pkg$debversion))) {
             message(paste('N: already built',pkg$srcname,'version',pkg$debversion))
             return(pkg)
