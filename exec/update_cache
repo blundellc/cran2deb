@@ -1,4 +1,4 @@
-#!/usr/bin/env r
+#!/usr/bin/env Rscript
 library(cran2deb)
 library(ctv)
 #mirror <- 'http://cran.uk.r-project.org/'
