@@ -58,6 +58,7 @@ sysreqs.as.debian <- function(sysreq_text) {
         # drop version information/comments for now
         sysreq = gsub('[\\([][^])]*[]\\)]','',sysreq)
         sysreq = gsub('version','',sysreq)
+        sysreq = gsub('from','',sysreq)
         sysreq = gsub('[<>=]*[[:space:]]*[[:digit:]]+[[:digit:].+:~-]*','',sysreq)
         # byebye URLs
         sysreq = gsub('(ht|f)tps?://[[:alnum:]!?*"\'(),%$_@.&+/=-]*','',sysreq)
@@ -70,7 +71,12 @@ sysreqs.as.debian <- function(sysreq_text) {
             stop('unmet system requirement')
         }
         message(paste('N: mapped SystemRequirement',startreq,'onto',deb,'via',sysreq))
-        debs = c(debs,deb)
+        if (deb == 'build-essential') {
+            # already in any build environment so no explicit depend.
+            message(paste('N: SystemRequirement',startreq,'dropped'))
+        } else {
+            debs = c(debs,deb)
+        }
     }
     return(debs)
 }

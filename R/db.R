@@ -29,7 +29,7 @@ db.stop <- function(con) {
 }
 
 db.quote <- function(text) {
-    return(paste('"',gsub('([^][[:alnum:]*?. ()<>:/=-])','\\\\\\1',text),'"',sep=''))
+    return(paste('"',gsub('([^][[:alnum:]*?. ()<>:/=+-])','\\\\\\1',text),'"',sep=''))
 }
 
 db.sysreq.override <- function(sysreq_text) {
