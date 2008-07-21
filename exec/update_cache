@@ -1,6 +1,10 @@
 #!/usr/bin/env Rscript
 library(cran2deb)
 library(ctv)
+
+argv <- commandArgs()
+argv <- argv[-(1:match("--args", argv))]
+
 #mirror <- 'http://cran.uk.r-project.org/'
 mirror <- 'http://cran.r-project.org/'
 
