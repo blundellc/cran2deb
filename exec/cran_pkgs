@@ -2,10 +2,11 @@
 
 library(cran2deb)
 
-if (length(argv) == 0) {
+if (length(argv) == 1) {
     writeLines(sample(dimnames(available)[[1]],800))
     #writeLines(dimnames(available)[[1]])
 } else {
+    argv = argv[2:length(argv)]
     if (argv[1] == 'query') {
         for (ctv in ctv.available) {
             writeLines(ctv$name)

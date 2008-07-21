@@ -1,9 +1,9 @@
 #!/usr/bin/env rc
 
-for (ctv in `{./cranpkgs query}) {
+for (ctv in `{cran2deb cran_pkgs query}) {
     echo task view $ctv...
     if (![ -e ctv/$ctv ]) {
-        ./build_some $ctv
+        cran2deb build_some $ctv
         mkdir -p ctv/$ctv
         mv warn fail ctv/$ctv
     }

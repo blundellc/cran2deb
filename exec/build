@@ -39,9 +39,12 @@ go <- function(name,extra_deps) {
                 message(paste('N: using Debian package of',dep))
                 next
             }
-            message(paste('N: uploading',dep))
+            # otherwise, convert to source package name
+            srcdep = pkgname.as.debian(dep,binary=F)
+
+            message(paste('N: uploading',srcdep))
             ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
-                        ,changesfile(dep)))
+                        ,changesfile(srcdep)))
             if (ret != 0) {
                 stop('upload of dependency failed! maybe you did not build it first?')
             }
