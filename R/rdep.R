@@ -22,7 +22,11 @@ r.requiring <- function(names) {
             if (is.na(bundle)) {
                 stop(paste('package',name,'is not available'))
             }
-            names <- c(names,r.bundle.contains(bundle))
+            name = bundle
+            names <- c(names,bundle)
+        }
+        if (!is.na(available[name,'Contains'])) {
+            names <- c(names,r.bundle.contains(name))
         }
     }
     # approximately prune first into a smaller availability

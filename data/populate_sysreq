@@ -1,6 +1,6 @@
 add build-essential gcc
 add build-essential gnu make
-add libquantlib0-dev quantlib
+add libquantlib0-dev quantlib*
 add pari-gp pari/gp
 add libcairo2-dev cairo
 add libgd2-noxpm-dev libgd
