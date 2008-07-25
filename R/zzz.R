@@ -1,6 +1,3 @@
-library(DBI)
-library(RSQLite)
-
 .First.lib <- function(libname, pkgname) {
     global <- function(name,value) assign(name,value,envir=.GlobalEnv)
     global("changesfile", function(srcname,version='*') {
