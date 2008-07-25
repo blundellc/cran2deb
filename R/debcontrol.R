@@ -1,30 +1,30 @@
-get.dependencies <- function(pkg,extra_deps) {
+get_dependencies <- function(pkg,extra_deps) {
     # determine dependencies
-    dependencies <- r.dependencies.of(description=pkg$description)
+    dependencies <- r_dependencies_of(description=pkg$description)
     depends <- list()
     # these are used for generating the Depends fields
-    as.deb <- function(r,build) {
-        return(pkgname.as.debian(paste(dependencies[r,]$name)
+    as_deb <- function(r,build) {
+        return(pkgname_as_debian(paste(dependencies[r,]$name)
                                 ,version=dependencies[r,]$version
                                 ,repopref=pkg$repo
                                 ,build=build))
     }
-    depends$bin <- lapply(rownames(dependencies), as.deb, build=F)
-    depends$build <- lapply(rownames(dependencies), as.deb, build=T)
+    depends$bin <- lapply(rownames(dependencies), as_deb, build=F)
+    depends$build <- lapply(rownames(dependencies), as_deb, build=T)
     # add the command line dependencies
     depends$bin = c(extra_deps$deb,depends$bin)
     depends$build = c(extra_deps$deb,depends$build)
     # add the system requirements
     if ('SystemRequirements' %in% colnames(pkg$description)) {
-        sysreq <- sysreqs.as.debian(pkg$description[1,'SystemRequirements'])
+        sysreq <- sysreqs_as_debian(pkg$description[1,'SystemRequirements'])
         depends$bin = c(sysreq,depends$bin)
         depends$build = c(sysreq,depends$build)
     }
 
     # make sure we depend upon R in some way...
     if (!length(grep('^r-base',depends$build))) {
-        depends$build = c(depends$build,pkgname.as.debian('R',version='>= 2.7.0',build=T))
-        depends$bin   = c(depends$bin,  pkgname.as.debian('R',version='>= 2.7.0',build=F))
+        depends$build = c(depends$build,pkgname_as_debian('R',version='>= 2.7.0',build=T))
+        depends$bin   = c(depends$bin,  pkgname_as_debian('R',version='>= 2.7.0',build=F))
     }
     # also include stuff to allow tcltk to build (suggested by Dirk)
     depends$build = c(depends$build,'xvfb','xauth','xfonts-base')
@@ -40,13 +40,13 @@ get.dependencies <- function(pkg,extra_deps) {
 
     # the names of dependent source packages (to find the .changes file to
     # upload via dput). these can be found recursively.
-    depends$r = r.dependency.closure(dependencies)
+    depends$r = r_dependency_closure(dependencies)
     # append command line dependencies
     depends$r = c(extra_deps$r, depends$r)
     return(depends)
 }
 
-sysreqs.as.debian <- function(sysreq_text) {
+sysreqs_as_debian <- function(sysreq_text) {
     # form of this field is unspecified (ugh) but most people seem to stick
     # with this
     debs <- c()
@@ -63,7 +63,7 @@ sysreqs.as.debian <- function(sysreq_text) {
         sysreq = gsub('(ht|f)tps?://[[:alnum:]!?*"\'(),%$_@.&+/=-]*','',sysreq)
         # squish out space
         sysreq = chomp(gsub('[[:space:]]+',' ',sysreq))
-        deb <- db.sysreq.override(sysreq)
+        deb <- db_sysreq_override(sysreq)
         if (is.na(deb)) {
             message(paste('E: do not know what to do with SystemRequirement:',sysreq))
             message(paste('E: original SystemRequirement:',startreq))
@@ -80,7 +80,7 @@ sysreqs.as.debian <- function(sysreq_text) {
     return(debs)
 }
 
-generate.control <- function(pkg) {
+generate_control <- function(pkg) {
     # construct control file
     control = data.frame()
     control[1,'Source'] = pkg$srcname
@@ -100,8 +100,8 @@ generate.control <- function(pkg) {
     # bundles provide virtual packages of their contents
     if (pkg$is_bundle) {
         control[2,'Provides'] = paste(
-                    lapply(r.bundle.contains(pkg$name)
-                          ,function(name) return(pkgname.as.debian(paste(name)
+                    lapply(r_bundle_contains(pkg$name)
+                          ,function(name) return(pkgname_as_debian(paste(name)
                                                                   ,repopref=pkg$repo)))
                           ,collapse=', ')
     }

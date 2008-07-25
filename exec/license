@@ -18,7 +18,7 @@ exec_cmd <- function(argc, argv) {
             return()
         }
         accept = (argc != 3)
-        db.add.license.override(argv[2],accept)
+        db_add_license_override(argv[2],accept)
     } else if (cmd == 'file') {
         if (argc != 3) {
             usage()
@@ -26,7 +26,7 @@ exec_cmd <- function(argc, argv) {
         }
         license = argv[2]
         path = argv[3]
-        if (is.null(db.license.override.name(license))) {
+        if (is.null(db_license_override_name(license))) {
             message(paste('license',license,'is not known'))
             return()
         }
@@ -38,9 +38,9 @@ exec_cmd <- function(argc, argv) {
         } else {
             stop(paste(path,'does not exist and does not look like an SHA1 hash'))
         }
-        db.add.license.file(license,file_sha1)
+        db_add_license_file(license,file_sha1)
     } else if (cmd == 'ls') {
-        for (x in db.license.overrides()) print(x)
+        for (x in db_license_overrides()) print(x)
     } else if (cmd == 'help') {
         usage()
         return()

@@ -12,7 +12,7 @@ cleanup <- function(dir) {
     invisible()
 }
 
-prepare.pkg <- function(dir, pkgname) {
+prepare_pkg <- function(dir, pkgname) {
     # download and extract an R package named pkgname
     # OR the bundle containing pkgname
 
@@ -21,7 +21,7 @@ prepare.pkg <- function(dir, pkgname) {
 
     # first a little trick; change pkgname if pkgname is contained in a bundle
     if (!(pkgname %in% rownames(available))) {
-        bundle <- r.bundle.of(pkgname)
+        bundle <- r_bundle_of(pkgname)
         if (is.na(bundle)) {
             stop(paste('package',pkgname,'is unavailable'))
         }

@@ -1,4 +1,4 @@
-repourl.as.debian <- function(url) {
+repourl_as_debian <- function(url) {
     # map the url to a repository onto its name in debian package naming
     if (length(grep('cran',url))) {
         return('cran')
@@ -9,7 +9,7 @@ repourl.as.debian <- function(url) {
     stop(paste('unknown repository',url))
 }
 
-pkgname.as.debian <- function(name,repopref=NULL,version=NULL,binary=T,build=F) {
+pkgname_as_debian <- function(name,repopref=NULL,version=NULL,binary=T,build=F) {
     # generate the debian package name corresponding to the R package name
     if (name %in% base_pkgs) {
         name = 'R'
@@ -29,7 +29,7 @@ pkgname.as.debian <- function(name,repopref=NULL,version=NULL,binary=T,build=F) 
         # XXX: data.frame rownames are unique, so always override repopref for
         #      now.
         if (!(name %in% rownames(available))) {
-            bundle <- r.bundle.of(name)
+            bundle <- r_bundle_of(name)
             if (is.na(bundle)) {
                 stop(paste('package',name,'is not available'))
             }
@@ -37,7 +37,7 @@ pkgname.as.debian <- function(name,repopref=NULL,version=NULL,binary=T,build=F) 
         }
         debname = tolower(name)
         if (binary) {
-            repopref <- tolower(repourl.as.debian(available[name,'Repository']))
+            repopref <- tolower(repourl_as_debian(available[name,'Repository']))
             debname = paste('r',repopref,debname,sep='-')
         }
     }

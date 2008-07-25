@@ -6,7 +6,7 @@ library(RSQLite)
     global("changesfile", function(srcname,version='*') {
         return(file.path(pbuilder_results
                         ,paste(srcname,'_',version,'_'
-                              ,host.arch(),'.changes',sep='')))
+                              ,host_arch(),'.changes',sep='')))
     })
     global("maintainer", 'cran2deb buildbot <cran2deb@example.org>')
     global("root", system.file(package='cran2deb'))

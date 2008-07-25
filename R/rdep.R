@@ -1,24 +1,24 @@
 
-r.bundle.of <- function(pkgname) {
+r_bundle_of <- function(pkgname) {
     # returns the bundle containing pkgname or NA
     bundles <- names(available[!is.na(available[, 'Bundle']), 'Contains'])
     # use the first bundle
     for (bundle in bundles) {
-        if (pkgname %in% r.bundle.contains(bundle)) {
+        if (pkgname %in% r_bundle_contains(bundle)) {
             return(bundle)
         }
     }
     return(NA)
 }
 
-r.bundle.contains <- function(bundlename) {
+r_bundle_contains <- function(bundlename) {
     return(strsplit(available[bundlename,'Contains'],'[[:space:]]+')[[1]])
 }
 
-r.requiring <- function(names) {
+r_requiring <- function(names) {
     for (name in names) {
         if (!(name %in% base_pkgs) && !(name %in% rownames(available))) {
-            bundle <- r.bundle.of(name)
+            bundle <- r_bundle_of(name)
             if (is.na(bundle)) {
                 stop(paste('package',name,'is not available'))
             }
@@ -26,7 +26,7 @@ r.requiring <- function(names) {
             names <- c(names,bundle)
         }
         if (!is.na(available[name,'Contains'])) {
-            names <- c(names,r.bundle.contains(name))
+            names <- c(names,r_bundle_contains(name))
         }
     }
     # approximately prune first into a smaller availability
@@ -57,7 +57,7 @@ r.requiring <- function(names) {
     return(unique(prereq))
 }
 
-r.dependencies.of <- function(name=NULL,description=NULL) {
+r_dependencies_of <- function(name=NULL,description=NULL) {
     # find the immediate dependencies (children in the dependency graph) of an
     # R package
     if (!is.null(name) && (name == 'R' || name %in% base_pkgs)) {
@@ -68,7 +68,7 @@ r.dependencies.of <- function(name=NULL,description=NULL) {
     }
     if (is.null(description)) {
         if (!(name %in% rownames(available))) {
-            bundle <- r.bundle.of(name)
+            bundle <- r_bundle_of(name)
             if (is.na(bundle)) {
                 stop(paste('package',name,'is not available'))
             }
@@ -91,13 +91,13 @@ r.dependencies.of <- function(name=NULL,description=NULL) {
         }
         new_deps <- lapply(strsplit(chomp(description[1,field])
                                    ,'[[:space:]]*,[[:space:]]*')[[1]]
-                          ,r.parse.dep.field)
+                          ,r_parse_dep_field)
         deps <- iterate(lapply(new_deps[!is.na(new_deps)],rbind),deps,rbind)
     }
     return (deps)
 }
 
-r.parse.dep.field <- function(dep) {
+r_parse_dep_field <- function(dep) {
     if (is.na(dep)) {
         return(NA)
     }
@@ -113,7 +113,7 @@ r.parse.dep.field <- function(dep) {
     version = sub(pat,'\\3',dep)
     dep = sub(pat,'\\1',dep)
     if (!(dep %in% rownames(available))) {
-        depb <- r.bundle.of(dep)
+        depb <- r_bundle_of(dep)
         if (!is.na(depb)) {
             dep <- depb
         }
@@ -121,16 +121,16 @@ r.parse.dep.field <- function(dep) {
     return(list(name=dep,version=version))
 }
 
-r.dependency.closure <- function(fringe, forward_arcs=T) {
+r_dependency_closure <- function(fringe, forward_arcs=T) {
     # find the transitive closure of the dependencies/prerequisites of some R
     # packages
     closure <- list()
     if (is.data.frame(fringe)) {
         fringe <- as.list(fringe$name)
     }
-    fun = function(x) r.dependencies.of(name=x)$name
+    fun = function(x) r_dependencies_of(name=x)$name
     if (!forward_arcs) {
-        fun = r.requiring
+        fun = r_requiring
     }
     while(length(fringe) > 0) {
         # pop off the top
@@ -140,7 +140,7 @@ r.dependency.closure <- function(fringe, forward_arcs=T) {
         } else {
             fringe <- list()
         }
-        src <- pkgname.as.debian(top,binary=F)
+        src <- pkgname_as_debian(top,binary=F)
         if (src == 'R') {
             next
         }

@@ -10,7 +10,7 @@ chomp <- function(x) {
     return(sub('^[[:space:]]+','',sub('[[:space:]]+$','',x)))
 }
 
-host.arch <- function() {
+host_arch <- function() {
     # return the host system architecture
     system('dpkg-architecture -qDEB_HOST_ARCH',intern=T)
 }

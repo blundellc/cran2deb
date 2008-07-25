@@ -1,4 +1,4 @@
-generate.changelog <- function(pkg) {
+generate_changelog <- function(pkg) {
     # construct a dummy changelog
     # TODO: ``Writing R extensions'' mentions that a package may also have
     # {NEWS,ChangeLog} files.
@@ -8,7 +8,7 @@ generate.changelog <- function(pkg) {
              ,'',sep='\n'),file=pkg$debfile('changelog.in'))
 }
 
-generate.rules <- function(pkg) {
+generate_rules <- function(pkg) {
     cat(paste('#!/usr/bin/make -f'
              ,paste('debRreposname :=',pkg$repo)
              ,'include /usr/share/R/debian/r-cran.mk'
@@ -17,8 +17,8 @@ generate.rules <- function(pkg) {
     Sys.chmod(pkg$debfile('rules'),'0700')
 }
 
-generate.copyright <- function(pkg) {
-    # generate copyright file; we trust DESCRIPTION
+generate_copyright <- function(pkg) {
+    # generate_copyright file; we trust DESCRIPTION
     writeLines(strwrap(
         paste('This Debian package of the GNU R package',pkg$name
              ,'was generated automatically using cran2deb by'
@@ -51,15 +51,15 @@ generate.copyright <- function(pkg) {
              ,sep='\n'), width=72), con=pkg$debfile('copyright.in'))
 }
 
-prepare.new.debian <- function(pkg,extra_deps) {
+prepare_new_debian <- function(pkg,extra_deps) {
     # generate Debian version and name
-    pkg$repo = repourl.as.debian(pkg$repoURL)
-    pkg$debversion = version.new(pkg$version)
+    pkg$repo = repourl_as_debian(pkg$repoURL)
+    pkg$debversion = version_new(pkg$version)
     if (!length(grep('^[A-Za-z0-9][A-Za-z0-9+.-]+$',pkg$name))) {
         stop(paste('Cannot convert package name into a Debian name',pkg$name))
     }
     pkg$srcname = tolower(pkg$name)
-    pkg$debname = pkgname.as.debian(pkg$name,repo=pkg$repo)
+    pkg$debname = pkgname_as_debian(pkg$name,repo=pkg$repo)
 
     if (!length(grep('\\.tar\\.gz',pkg$archive))) {
         stop('archive is not tarball')
@@ -103,7 +103,7 @@ prepare.new.debian <- function(pkg,extra_deps) {
     if (pkg$is_bundle) {
         # if it's a bundle, check each of the packages
         pkg$archdep = F
-        for (pkgname in r.bundle.contains(pkg$name)) {
+        for (pkgname in r_bundle_contains(pkg$name)) {
             pkg$archdep = file.exists(file.path(pkg$path,pkgname,'src'))
             if (pkg$archdep) {
                 break
@@ -114,15 +114,15 @@ prepare.new.debian <- function(pkg,extra_deps) {
     }
     pkg$arch <- 'all'
     if (pkg$archdep) {
-        pkg$arch <- host.arch()
+        pkg$arch <- host_arch()
     }
 
-    pkg$license <- accept.license(pkg)
-    pkg$depends <- get.dependencies(pkg,extra_deps)
-    generate.changelog(pkg)
-    generate.rules(pkg)
-    generate.copyright(pkg)
-    generate.control(pkg)
+    pkg$license <- accept_license(pkg)
+    pkg$depends <- get_dependencies(pkg,extra_deps)
+    generate_changelog(pkg)
+    generate_rules(pkg)
+    generate_copyright(pkg)
+    generate_control(pkg)
 
     # TODO: debian/watch from pkg$repoURL
 
@@ -137,7 +137,7 @@ prepare.new.debian <- function(pkg,extra_deps) {
     return(pkg)
 }
 
-build.debian <- function(pkg) {
+build_debian <- function(pkg) {
     wd <- getwd()
     setwd(pkg$path)
     message(paste('N: building Debian package'

@@ -1,5 +1,5 @@
 
-db.start <- function() {
+db_start <- function() {
     drv <- dbDriver('SQLite')
     con <- dbConnect(drv, dbname=file.path(root,'data/cran2deb.db'))
     tables <- dbListTables(con)
@@ -24,111 +24,111 @@ db.start <- function() {
     return(con)
 }
 
-db.stop <- function(con) {
+db_stop <- function(con) {
     dbDisconnect(con)
 }
 
-db.quote <- function(text) {
+db_quote <- function(text) {
     return(paste('"',gsub('([^][[:alnum:]*?. ()<>:/=+-])','\\\\\\1',text),'"',sep=''))
 }
 
-db.sysreq.override <- function(sysreq_text) {
+db_sysreq_override <- function(sysreq_text) {
     sysreq_text <- tolower(sysreq_text)
-    con <- db.start()
+    con <- db_start()
     results <- dbGetQuery(con,paste(
                     'SELECT debian_name FROM sysreq_override WHERE'
-                            ,db.quote(sysreq_text),'GLOB r_pattern'))
-    db.stop(con)
+                            ,db_quote(sysreq_text),'GLOB r_pattern'))
+    db_stop(con)
     if (length(results) == 0) {
         return(NA)
     }
     return(results$debian_name)
 }
 
-db.add.sysreq.override <- function(pattern,debian_name) {
+db_add_sysreq_override <- function(pattern,debian_name) {
     pattern <- tolower(pattern)
     debian_name <- tolower(debian_name)
-    con <- db.start()
+    con <- db_start()
     results <- dbGetQuery(con,paste(
                      'INSERT OR REPLACE INTO sysreq_override'
                     ,'(debian_name, r_pattern) VALUES ('
-                    ,' ',db.quote(debian_name)
-                    ,',',db.quote(pattern)
+                    ,' ',db_quote(debian_name)
+                    ,',',db_quote(pattern)
                     ,')'))
-    db.stop(con)
+    db_stop(con)
 }
 
-db.sysreq.overrides <- function() {
-    con <- db.start()
+db_sysreq_overrides <- function() {
+    con <- db_start()
     overrides <- dbGetQuery(con,paste('SELECT * FROM sysreq_override'))
-    db.stop(con)
+    db_stop(con)
     return(overrides)
 }
 
 
-db.license.override.name <- function(name) {
+db_license_override_name <- function(name) {
     name <- tolower(name)
-    con <- db.start()
+    con <- db_start()
     results <- dbGetQuery(con,paste(
                     'SELECT accept FROM license_override WHERE'
-                            ,db.quote(name),'= name'))
-    db.stop(con)
+                            ,db_quote(name),'= name'))
+    db_stop(con)
     if (length(results) == 0) {
         return(NA)
     }
     return(as.logical(results$accept))
 }
 
-db.add.license.override <- function(name,accept) {
+db_add_license_override <- function(name,accept) {
     name <- tolower(name)
     message(paste('adding',name,'accept?',accept))
     if (accept != TRUE && accept != FALSE) {
         stop('accept must be TRUE or FALSE')
     }
-    con <- db.start()
+    con <- db_start()
     results <- dbGetQuery(con,paste(
                      'INSERT OR REPLACE INTO license_override'
                     ,'(name, accept) VALUES ('
-                    ,' ',db.quote(name)
+                    ,' ',db_quote(name)
                     ,',',as.integer(accept)
                     ,')'))
-    db.stop(con)
+    db_stop(con)
 }
 
-db.license.override.file <- function(file_sha1) {
+db_license_override_file <- function(file_sha1) {
     file_sha1 <- tolower(file_sha1)
-    con <- db.start()
+    con <- db_start()
     results <- dbGetQuery(con,paste(
                      'SELECT name,accept FROM license_override'
                     ,'INNER JOIN license_files'
                     ,'ON license_files.name = license_override.name WHERE'
-                    ,db.quote(file_sha1),'= license_files.file_sha1'))
-    db.stop(con)
+                    ,db_quote(file_sha1),'= license_files.file_sha1'))
+    db_stop(con)
     # TODO: change accept from 0,1 into FALSE,TRUE
     # TODO: NULL -> NA
     return(results)
 }
 
-db.license.overrides <- function() {
-    con <- db.start()
+db_license_overrides <- function() {
+    con <- db_start()
     overrides <- dbGetQuery(con,paste('SELECT * FROM license_override'))
     files     <- dbGetQuery(con,paste('SELECT * FROM license_files'))
-    db.stop(con)
+    db_stop(con)
     # TODO: change accept from 0,1 into FALSE,TRUE
     return(list(overrides=overrides,files=files))
 }
 
-db.add.license.file <- function(name,file_sha1) {
+db_add_license_file <- function(name,file_sha1) {
     name <- tolower(name)
     file_sha1 <- tolower(file_sha1)
     message(paste('adding file',file_sha1,'for',name))
-    con <- db.start()
+    con <- db_start()
     dbGetQuery(con,paste(
          'INSERT OR REPLACE INTO license_files'
         ,'(name, file_sha1) VALUES ('
-        ,' ',db.quote(name)
-        ,',',db.quote(file_sha1)
+        ,' ',db_quote(name)
+        ,',',db_quote(file_sha1)
         ,')'))
-    db.stop(con)
+    db_stop(con)
 }
 

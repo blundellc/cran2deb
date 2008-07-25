@@ -18,9 +18,9 @@ exec_cmd <- function(argc, argv) {
             return()
         }
         sysreq = paste(argv[3:argc],collapse=' ')
-        db.add.sysreq.override(sysreq,argv[2])
+        db_add_sysreq_override(sysreq,argv[2])
     } else if (cmd == 'ls') {
-        print(db.sysreq.overrides())
+        print(db_sysreq_overrides())
     } else if (cmd == 'help') {
         usage()
         return()

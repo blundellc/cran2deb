@@ -8,7 +8,7 @@ is_acceptable_license <- function(license) {
     # don't care about versions of licenses
     license = chomp(sub('\\( ?[<=>!]+ ?[0-9.-]+ ?\\)',''
                     ,sub('-[0-9.-]+','',license)))
-    action = db.license.override.name(license)
+    action = db_license_override_name(license)
     if (!is.na(action)) {
         return(action)
     }
@@ -29,7 +29,7 @@ is_acceptable_license <- function(license) {
     license = gsub('(mozilla )?(mpl|mozilla public)','mpl',license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
-    action = db.license.override.name(license)
+    action = db_license_override_name(license)
     if (!is.na(action)) {
         message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
         return(action)
@@ -39,7 +39,7 @@ is_acceptable_license <- function(license) {
                    ,license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
-    action = db.license.override.name(license)
+    action = db_license_override_name(license)
     if (!is.na(action)) {
         message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
         return(action)
@@ -49,7 +49,7 @@ is_acceptable_license <- function(license) {
     return(F)
 }
 
-accept.license <- function(pkg) {
+accept_license <- function(pkg) {
     # check the license
     if (!('License' %in% names(pkg$description[1,]))) {
         stop('package has no License: field in description!')
