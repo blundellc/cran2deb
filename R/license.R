@@ -1,17 +1,46 @@
 is_acceptable_license <- function(license) {
-    # determine if license is acceptable
+    # determine if license text is acceptable
+
+    if (length(grep('^file ',license))) {
+        # skip file licenses
+        return(FALSE)
+    }
+    license <- license_text_reduce(license)
+    action = db_license_override_name(license)
+    if (!is.na(action)) {
+        return(action)
+    }
+    license <- license_text_further_reduce(license)
+    action = db_license_override_name(license)
+    if (!is.na(action)) {
+        message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
+        return(action)
+    }
+    # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
+    message(paste('E: Wild license',license,'did not match classic rules; rejecting'))
+    return(F)
+}
+
+license_text_reduce <- function(license) {
+    # these reduction steps are sound for all conformant R license
+    # specifications.
 
     # compress spaces into a single space
-    license = gsub('[[:blank:]]+',' ',license)
+    license = gsub('[[:space:]]+',' ',license)
     # make all characters lower case
     license = tolower(license)
     # don't care about versions of licenses
     license = chomp(sub('\\( ?[<=>!]+ ?[0-9.-]+ ?\\)',''
                     ,sub('-[0-9.-]+','',license)))
-    action = db_license_override_name(license)
-    if (!is.na(action)) {
-        return(action)
-    }
+    # remove any extra space introduced
+    license = chomp(gsub('[[:space:]]+',' ',license))
+    return(license)
+}
+
+license_text_further_reduce <- function(license) {
+    # these reduction steps are heuristic and may lead to
+    # in correct acceptances, if care is not taken.
+
     # uninteresting urls
     license = gsub('http://www.gnu.org/[[:alnum:]/._-]*','',license)
     license = gsub('http://www.x.org/[[:alnum:]/._-]*','',license)
@@ -27,27 +56,49 @@ is_acceptable_license <- function(license) {
     license = gsub('licen[sc]e','',license)
     license = gsub('(gnu )?(gpl|general public)','gpl',license)
     license = gsub('(mozilla )?(mpl|mozilla public)','mpl',license)
-    # remove any extra space introduced
-    license = chomp(gsub('[[:space:]]+',' ',license))
-    action = db_license_override_name(license)
-    if (!is.na(action)) {
-        message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
-        return(action)
-    }
     # remove everything that looks like a version specification
     license = gsub('(ver?sion|v)? *[0-9.-]+ *(or *(higher|later|newer|greater|above))?',''
                    ,license)
     # remove any extra space introduced
     license = chomp(gsub('[[:space:]]+',' ',license))
-    action = db_license_override_name(license)
-    if (!is.na(action)) {
-        message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
-        return(action)
-    }
-    # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
-    message(paste('E: Wild license',license,'did not match; rejecting'))
-    return(F)
+    return(license)
 }
+
+license_text_hash_reduce <- function(text) {
+    # reduction of license text, suitable for hashing.
+    return(chomp(tolower(gsub('[[:space:]]+',' ',text))))
+}
+
+get_license_hash <- function(pkg,license) {
+    license <- license_text_reduce(license)
+    if (length(grep('^file ',license))) {
+        if (length(grep('^file LICEN[CS]E$',license))) {
+            path = gsub('file ','',license)
+            path = file.path(pkg$path, path)
+            license <- license_text_reduce(readChar(path,file.info(path)$size))
+        } else {
+            message(paste('E: invalid license file specification',license))
+            return(NA)
+        }
+    }
+    return(digest(license,algo='sha1',serialize=FALSE))
+}
+
+is_acceptable_hash_license <- function(pkg,license) {
+    license_sha1 <- get_license_hash(pkg,license)
+    if (is.na(license_sha1)) {
+        return(FALSE)
+    }
+    action = db_license_override_hash(license_sha1)
+    if (is.na(action)) {
+        action = FALSE
+    }
+    if (action) {
+        message(paste('W: Wild license',license,'accepted via hash',license_sha1))
+    }
+    return(action)
+}
+
 
 accept_license <- function(pkg) {
     # check the license
@@ -58,6 +109,10 @@ accept_license <- function(pkg) {
     for (license in strsplit(chomp(pkg$description[1,'License'])
                             ,'[[:space:]]*\\|[[:space:]]*')[[1]]) {
         if (is_acceptable_license(license)) {
+            accept=license
+            break
+        }
+        if (is_acceptable_hash_license(pkg,license)) {
             accept=license
             break
         }

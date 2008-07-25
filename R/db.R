@@ -15,10 +15,10 @@ db_start <- function() {
                   ,',accept INT NOT NULL'
                   ,')'))
     }
-    if (!dbExistsTable(con,'license_files')) {
-        dbGetQuery(con,paste('CREATE TABLE license_files ('
+    if (!dbExistsTable(con,'license_hashes')) {
+        dbGetQuery(con,paste('CREATE TABLE license_hashes ('
                   ,' name TEXT NOT NULL'
-                  ,',file_sha1 TEXT PRIMARY KEY NOT NULL'
+                  ,',sha1 TEXT PRIMARY KEY NOT NULL'
                   ,')'))
     }
     return(con)
@@ -36,7 +36,7 @@ db_sysreq_override <- function(sysreq_text) {
     sysreq_text <- tolower(sysreq_text)
     con <- db_start()
     results <- dbGetQuery(con,paste(
-                    'SELECT debian_name FROM sysreq_override WHERE'
+                    'SELECT DISTINCT debian_name FROM sysreq_override WHERE'
                             ,db_quote(sysreq_text),'GLOB r_pattern'))
     db_stop(con)
     if (length(results) == 0) {
@@ -70,7 +70,7 @@ db_license_override_name <- function(name) {
     name <- tolower(name)
     con <- db_start()
     results <- dbGetQuery(con,paste(
-                    'SELECT accept FROM license_override WHERE'
+                    'SELECT DISTINCT accept FROM license_override WHERE'
                             ,db_quote(name),'= name'))
     db_stop(con)
     if (length(results) == 0) {
@@ -95,39 +95,40 @@ db_add_license_override <- function(name,accept) {
     db_stop(con)
 }
 
-db_license_override_file <- function(file_sha1) {
-    file_sha1 <- tolower(file_sha1)
+db_license_override_hash <- function(license_sha1) {
+    license_sha1 <- tolower(license_sha1)
     con <- db_start()
     results <- dbGetQuery(con,paste(
-                     'SELECT name,accept FROM license_override'
-                    ,'INNER JOIN license_files'
-                    ,'ON license_files.name = license_override.name WHERE'
-                    ,db_quote(file_sha1),'= license_files.file_sha1'))
+                     'SELECT DISTINCT accept FROM license_override'
+                    ,'INNER JOIN license_hashes'
+                    ,'ON license_hashes.name = license_override.name WHERE'
+                    ,db_quote(license_sha1),'= license_hashes.sha1'))
     db_stop(con)
-    # TODO: change accept from 0,1 into FALSE,TRUE
-    # TODO: NULL -> NA
-    return(results)
+    if (length(results) == 0) {
+        return(NA)
+    }
+    return(as.logical(results$accept))
 }
 
 db_license_overrides <- function() {
     con <- db_start()
     overrides <- dbGetQuery(con,paste('SELECT * FROM license_override'))
-    files     <- dbGetQuery(con,paste('SELECT * FROM license_files'))
+    hashes    <- dbGetQuery(con,paste('SELECT * FROM license_hashes'))
     db_stop(con)
     # TODO: change accept from 0,1 into FALSE,TRUE
-    return(list(overrides=overrides,files=files))
+    return(list(overrides=overrides,hashes=hashes))
 }
 
-db_add_license_file <- function(name,file_sha1) {
+db_add_license_hash <- function(name,license_sha1) {
     name <- tolower(name)
-    file_sha1 <- tolower(file_sha1)
-    message(paste('adding file',file_sha1,'for',name))
+    license_sha1 <- tolower(license_sha1)
+    message(paste('adding hash',license_sha1,'for',name))
     con <- db_start()
     dbGetQuery(con,paste(
-         'INSERT OR REPLACE INTO license_files'
-        ,'(name, file_sha1) VALUES ('
+         'INSERT OR REPLACE INTO license_hashes'
+        ,'(name, sha1) VALUES ('
         ,' ',db_quote(name)
-        ,',',db_quote(file_sha1)
+        ,',',db_quote(license_sha1)
         ,')'))
     db_stop(con)
 }

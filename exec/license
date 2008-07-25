@@ -5,7 +5,13 @@ suppressPackageStartupMessages(library(digest))
 
 exec_cmd <- function(argc, argv) {
     usage <- function()
-        message('usage: add <license> [reject]|file <license> <path>|ls|quit|help')
+        message(paste('usage: add <license> [reject]'
+                     ,'       hash <license> (<path>|<hash>)'
+                     ,'       accept <pkg> <license name>'
+                     ,'       reject <pkg> <license name>'
+                     ,'       ls'
+                     ,'       quit'
+                     ,sep='\n'))
 
     if (argc < 1) {
         exit()
@@ -17,28 +23,61 @@ exec_cmd <- function(argc, argv) {
             usage()
             return()
         }
-        accept = (argc != 3)
-        db_add_license_override(argv[2],accept)
-    } else if (cmd == 'file') {
+        action = (argc != 3)
+        db_add_license_override(argv[2],action)
+    } else if (cmd == 'hash') {
         if (argc != 3) {
             usage()
             return()
         }
         license = argv[2]
         path = argv[3]
-        if (is.null(db_license_override_name(license))) {
-            message(paste('license',license,'is not known'))
+        if (is.na(db_license_override_name(license))) {
+            message(paste('E: license',license,'is not known; add it first'))
             return()
         }
         if (file.exists(path)) {
-            file_sha1 = digest(readChar(path,file.info(path)$size)
-                              ,algo='sha1', serialize=FALSE)
+            license_sha1 = digest(readChar(path,file.info(path)$size)
+                                 ,algo='sha1', serialize=FALSE)
         } else if (length(grep('^[0-9a-f]{40}$',path))) {
-            file_sha1 = path
+            license_sha1 = path
         } else {
-            stop(paste(path,'does not exist and does not look like an SHA1 hash'))
+            message(paste('E:',path,'does not exist and does not look like an SHA1 hash'))
+            return()
         }
-        db_add_license_file(license,file_sha1)
+        db_add_license_hash(license,license_sha1)
+    } else if (cmd == 'reject' || cmd == 'accept') {
+        if (argc != 3) {
+            usage()
+            return()
+        }
+        pkg_name <- argv[2]
+        license <- argv[3]
+        current_action <- db_license_override_name(license)
+        action = (cmd == 'accept')
+        if (is.na(current_action)) {
+            message(paste('N: license',license,'is not known; adding it'))
+            db_add_license_override(license,action)
+        } else if (action != current_action) {
+            message(paste('E: differing actions propose for license',license))
+            return()
+        }
+        tmp <- setup()
+        success <- try((function() {
+            pkg <- prepare_pkg(tmp,pkg_name)
+            if (!('License' %in% names(pkg$description[1,]))) {
+                message(paste('E: package',pkg$name,'has no License: field in DESCRIPTION'))
+                return()
+            }
+            first_license = (strsplit(chomp(pkg$description[1,'License'])
+                                     ,'[[:space:]]*\\|[[:space:]]*')[[1]])[1]
+            license_sha1 <- get_license_hash(pkg,first_license)
+            db_add_license_hash(license,license_sha1)
+        })())
+        cleanup(tmp)
+        if (inherits(success,'try-error')) {
+            stop(call.=F)
+        }
     } else if (cmd == 'ls') {
         for (x in db_license_overrides()) print(x)
     } else if (cmd == 'help') {
