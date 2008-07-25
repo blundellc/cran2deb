@@ -32,7 +32,7 @@ r.requiring <- function(names) {
     # approximately prune first into a smaller availability
     candidates <- rownames(available)[sapply(rownames(available)
                                             ,function(name)
-                                                length(grep(paste(names,sep='|')
+                                                length(grep(paste(names,collapse='|')
                                                            ,available[name,r_depend_fields])) > 0)]
     if (length(candidates) == 0) {
         return(c())
