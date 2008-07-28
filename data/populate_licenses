@@ -1,19 +1,68 @@
-add GPL
+accept AGPL
+accept APACHE
+accept ARTISTIC
+accept BSD
+accept CeCILL
+accept CPL
+accept GPL
+accept GPLQA
+accept GPL+QHULL
+accept LGPL
+accept MIT
+accept MPL
+accept TCLTK2
+accept UNLIMITED
+accept X11
+reject distrib-noncomm
+reject GPL+ACM
+reject MCLUST
+reject UNCLEAR
+hash APACHE /usr/share/common-licenses/Apache-2.0
+hash ARTISTIC /usr/share/common-licenses/Artistic
+hash BSD /usr/share/common-licenses/BSD
 hash GPL /usr/share/common-licenses/GPL-2
 hash GPL /usr/share/common-licenses/GPL-3
-add LGPL
 hash LGPL /usr/share/common-licenses/LGPL-2
 hash LGPL /usr/share/common-licenses/LGPL-2.1
 hash LGPL /usr/share/common-licenses/LGPL-3
-add BSD
-hash BSD /usr/share/common-licenses/BSD
-add ARTISTIC
-hash ARTISTIC /usr/share/common-licenses/Artistic
-add APACHE
-hash APACHE /usr/share/common-licenses/Apache-2.0
-add AGPL
-add MIT
-add X11
-add MPL
-add UNLIMITED reject
+pkg BSD minpack.lm
+pkg CeCILL LLAhclust
+pkg CPL lmom
+pkg distrib-noncomm Bhat
+pkg distrib-noncomm conf.design
+pkg distrib-noncomm gpclib
+pkg distrib-noncomm mlbench
+pkg distrib-noncomm poplab
+pkg distrib-noncomm PredictiveRegression
+pkg distrib-noncomm PTAk
+pkg distrib-noncomm siggenes
+pkg GPL+ACM akima
+pkg GPL+ACM tripack
+pkg GPL ergm
+pkg GPL gmodels
+pkg GPL ICE
+pkg GPL network
+pkg GPL pastecs
+pkg GPL pbatR
+pkg GPL PKtools
+pkg GPL+QHULL geometry
+pkg GPL reldist
+pkg GPL RXshrink
+pkg GPL snpMatrix
+pkg GPL splancs
+pkg GPL uroot
+pkg LGPL R.huge
+pkg MCLUST mclust
+pkg TCLTK2 tcltk2
+pkg UNCLEAR adapt
+pkg UNCLEAR cat
+pkg UNCLEAR cosmo
+pkg UNCLEAR mix
+pkg UNCLEAR mlmm
+pkg UNCLEAR norm
+pkg UNCLEAR pan
+pkg UNCLEAR titecrm
+pkg UNCLEAR tlnise
+pkg UNLIMITED boolean
+pkg GPLQA regtest
 ls

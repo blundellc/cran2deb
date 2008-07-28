@@ -5,10 +5,11 @@ suppressPackageStartupMessages(library(digest))
 
 exec_cmd <- function(argc, argv) {
     usage <- function()
-        message(paste('usage: add <license> [reject]'
+        message(paste('usage: accept <license>'
+                     ,'       reject <license>'
                      ,'       hash <license> (<path>|<hash>)'
-                     ,'       accept <pkg> <license name>'
-                     ,'       reject <pkg> <license name>'
+                     ,'       pkg <license> <pkg>'
+                     ,'       view <pkg>'
                      ,'       ls'
                      ,'       quit'
                      ,sep='\n'))
@@ -18,12 +19,12 @@ exec_cmd <- function(argc, argv) {
     }
     cmd = argv[1]
 
-    if (cmd == 'add') {
-        if (argc != 2 && (argc != 3 || argv[3] != 'reject')) {
+    if (cmd == 'accept' || cmd == 'reject') {
+        if (argc != 2) {
             usage()
             return()
         }
-        action = (argc != 3)
+        action = (cmd == 'accept')
         db_add_license_override(argv[2],action)
     } else if (cmd == 'hash') {
         if (argc != 3) {
@@ -46,22 +47,23 @@ exec_cmd <- function(argc, argv) {
             return()
         }
         db_add_license_hash(license,license_sha1)
-    } else if (cmd == 'reject' || cmd == 'accept') {
+    } else if (cmd == 'pkg') {
         if (argc != 3) {
             usage()
             return()
         }
-        pkg_name <- argv[2]
-        license <- argv[3]
+        license <- argv[2]
+        pkg_name <- argv[3]
         current_action <- db_license_override_name(license)
-        action = (cmd == 'accept')
         if (is.na(current_action)) {
-            message(paste('N: license',license,'is not known; adding it'))
-            db_add_license_override(license,action)
-        } else if (action != current_action) {
-            message(paste('E: differing actions propose for license',license))
+            message(paste('N: license',license,'is not known; add it'))
             return()
         }
+        action = 'accept'
+        if (!current_action) {
+            action = 'reject'
+        }
+        message(paste('in future, will',action,'the package',pkg_name,'under license',license))
         tmp <- setup()
         success <- try((function() {
             pkg <- prepare_pkg(tmp,pkg_name)
@@ -73,6 +75,28 @@ exec_cmd <- function(argc, argv) {
                                      ,'[[:space:]]*\\|[[:space:]]*')[[1]])[1]
             license_sha1 <- get_license_hash(pkg,first_license)
             db_add_license_hash(license,license_sha1)
+        })())
+        cleanup(tmp)
+        if (inherits(success,'try-error')) {
+            stop(call.=F)
+        }
+    } else if (cmd == 'view') {
+        if (argc != 2) {
+            usage()
+            return()
+        }
+        pkg_name <- argv[2]
+        tmp <- setup()
+        success <- try((function() {
+            pkg <- prepare_pkg(tmp,pkg_name)
+            if (!('License' %in% names(pkg$description[1,]))) {
+                message(paste('E: package',pkg$name,'has no License: field in DESCRIPTION'))
+                return()
+            }
+            first_license = (strsplit(chomp(pkg$description[1,'License'])
+                                     ,'[[:space:]]*\\|[[:space:]]*')[[1]])[1]
+            first_license = get_license(pkg,first_license)
+            cat(strwrap(first_license),file='|less')
         })())
         cleanup(tmp)
         if (inherits(success,'try-error')) {
