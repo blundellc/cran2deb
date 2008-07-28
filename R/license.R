@@ -16,6 +16,12 @@ is_acceptable_license <- function(license) {
         message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
         return(action)
     }
+    license <- license_text_extreme_reduce(license)
+    action = db_license_override_name(license)
+    if (!is.na(action)) {
+        message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
+        return(action)
+    }
     # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
     message(paste('E: Wild license',license,'did not match classic rules; rejecting'))
     return(F)
@@ -56,7 +62,13 @@ license_text_further_reduce <- function(license) {
     license = gsub('licen[sc]e','',license)
     license = gsub('(gnu )?(gpl|general public)','gpl',license)
     license = gsub('(mozilla )?(mpl|mozilla public)','mpl',license)
-    # remove everything that looks like a version specification
+    # remove any extra space introduced
+    license = chomp(gsub('[[:space:]]+',' ',license))
+    return(license)
+}
+
+license_text_extreme_reduce <- function(license) {
+    # remove everything that may or may not be a version specification
     license = gsub('(ver?sion|v)? *[0-9.-]+ *(or *(higher|later|newer|greater|above))?',''
                    ,license)
     # remove any extra space introduced
@@ -69,8 +81,8 @@ license_text_hash_reduce <- function(text) {
     return(chomp(tolower(gsub('[[:space:]]+',' ',text))))
 }
 
-get_license_hash <- function(pkg,license) {
-    license <- license_text_reduce(license)
+get_license <- function(pkg,license) {
+    license <- chomp(gsub('[[:space:]]+',' ',license))
     if (length(grep('^file ',license))) {
         if (length(grep('^file LICEN[CS]E$',license))) {
             path = gsub('file ','',license)
@@ -81,7 +93,11 @@ get_license_hash <- function(pkg,license) {
             return(NA)
         }
     }
-    return(digest(license,algo='sha1',serialize=FALSE))
+    return(license)
+}
+
+get_license_hash <- function(pkg,license) {
+    return(digest(get_license(pkg,license),algo='sha1',serialize=FALSE))
 }
 
 is_acceptable_hash_license <- function(pkg,license) {
