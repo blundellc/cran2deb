@@ -18,7 +18,9 @@ Let ROOT be the value returned by running: cran2deb root
     $ rm ROOT/var/archive
     $ ln -s /var/www/cran2deb/ ROOT/var/archive
 3. modify OTHERMIRROR of ROOT/etc/pbuilderrc.in to point to your webserver
-4. run: cran2deb update
-5. Try building a simple package: cran2deb build zoo
-   (The result will be in ROOT/var/results)
+4. cran2deb needs a persistent cache outside of R's control. therefore, create
+    /var/cache/cran2deb, writable by whichever user(s) will run cran2deb.
+5. run: cran2deb update
+6. Try building a simple package: cran2deb build zoo
+   (The result will be in /var/cache/cran2deb/results)
 

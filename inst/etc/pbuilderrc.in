@@ -1,6 +1,6 @@
 BASETGZ=/var/cache/pbuilder/base-cran2deb.tgz
 HOOKDIR=@ROOT@/etc/hook
-BUILDRESULT=@ROOT@/var/results
+BUILDRESULT=/var/cache/cran2deb/results
 EXTRAPACKAGES='debhelper r-base-dev cdbs r-base-core lintian xvfb xauth xfonts-base'
 REMOVEPACKAGES='lilo libldap-2.4-2 libopencdk10 libsasl2-2'
 # don't actually need aptitude, but pbuilder insists...

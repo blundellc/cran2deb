@@ -6,17 +6,19 @@ for (x in `{find $root/etc -type f -name '*.in'}) {
     y=`{echo $x | sed -e 's,.in$,,'}
     sed -e 's:@ROOT@:'^$root^':g' <$x >$y
 }
-mkdir -p $root/var/results
+mkdir -p /var/cache/cran2deb/results || exit 1
 if ([ ! -e $root/var/archive ]) {
     # I symbolically link this into /var/www/
-    mkdir $root/var/archive
+    mkdir $root/var/archive || exit 1
 }
 mini-dinstall --batch -c $root/etc/mini-dinstall.conf || exit 1
-mode=create
-if ([ -e /var/cache/pbuilder/base-cran2deb.tgz ]) {
-    mode=update
+if (! ~ $1 quick) {
+    mode=create
+    if ([ -e /var/cache/pbuilder/base-cran2deb.tgz ]) {
+        mode=update
+    }
+    sudo pbuilder $mode --override-config --configfile $root/etc/pbuilderrc
+    $root/exec/update_cache $root
+    $root/exec/license <$root/data/populate_licenses
+    $root/exec/sysreq <$root/data/populate_sysreq
 }
-sudo pbuilder $mode --override-config --configfile $root/etc/pbuilderrc
-$root/exec/update_cache $root
-$root/exec/license <$root/data/populate_licenses
-$root/exec/sysreq <$root/data/populate_sysreq

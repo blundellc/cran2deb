@@ -1,7 +1,7 @@
 
 db_start <- function() {
     drv <- dbDriver('SQLite')
-    con <- dbConnect(drv, dbname=file.path(root,'data/cran2deb.db'))
+    con <- dbConnect(drv, dbname=file.path(cache_root,'cran2deb.db'))
     tables <- dbListTables(con)
     if (!dbExistsTable(con,'sysreq_override')) {
         dbGetQuery(con,paste('CREATE TABLE sysreq_override ('
