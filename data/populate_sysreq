@@ -1,13 +1,13 @@
 add build-essential gcc
 add build-essential gnu make
-add libquantlib0-dev quantlib*
+add libquantlib0-dev quantlib%
 add pari-gp pari/gp
 add libcairo2-dev cairo
 add libgd2-noxpm-dev libgd
 add libatk1.0-dev atk
 add libpango1.0-dev pango
-add libgtk2.0-dev gtk+?
-add libglade2-dev *glade
+add libgtk2.0-dev gtk%
+add libglade2-dev %glade
 add libglib2.0-dev glib
 add libgl1-mesa-dev opengl
 add libglu1-mesa-dev glu library
@@ -19,3 +19,7 @@ add libgmp3-dev gmp
 add libgdal1-dev gdal
 add proj proj.4
 add libgraphviz-dev graphviz
+add imagemagick imagemagick
+add curl curl
+add libxml2-dev libxml%
+add libfreetype6-dev %freetype
