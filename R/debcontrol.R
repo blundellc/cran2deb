@@ -55,7 +55,9 @@ sysreqs_as_debian <- function(sysreq_text) {
         # constant case
         sysreq = tolower(sysreq)
         # drop version information/comments for now
-        sysreq = gsub('[\\([][^])]*[]\\)]','',sysreq)
+        sysreq = gsub('[[][^])]*[]]','',sysreq)
+        sysreq = gsub('\\([^)]*\\)','',sysreq)
+        sysreq = gsub('[[][^])]*[]]','',sysreq)
         sysreq = gsub('version','',sysreq)
         sysreq = gsub('from','',sysreq)
         sysreq = gsub('[<>=]*[[:space:]]*[[:digit:]]+[[:digit:].+:~-]*','',sysreq)
