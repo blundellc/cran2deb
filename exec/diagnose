@@ -64,8 +64,9 @@ echo $nfailother other failures.
 total=`{hoc -e $total}
 succrate=`{hoc -e $success/'('$total')*100'}
 echo $succrate% success rate '('$total' total)'
-total=`{hoc -e $total-$nfaillic-$nfailspc-$nfailhdr}
+#total=`{hoc -e $total-$nfaillic-$nfailspc-$nfailhdr}
+total=`{hoc -e $total-$nfaillic-$nfailspc}
 succrate=`{hoc -e $success/'('$total')*100'}
-echo $succrate% success rate without licensing, space and Debian deps issues '('$total' total)'
+echo $succrate% success rate with exclusions '('$total' total)'
 grep -EL $other fail/* /dev/null | xargs tail -n 20
 

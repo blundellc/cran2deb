@@ -8,16 +8,23 @@ if ([ ! -e all_pkgs ]) {
 for (pkg in `{cat all_pkgs}) {
     if (~ $pkg *..* */*) {
         echo bad name $pkg >>fail/ERROR
+    } else if ([ -e warn/$pkg ]) {
+        echo skipping $pkg...
+    } else if ([ -e fail/$pkg ]) {
+        echo skipping failed $pkg...
     } else {
-        echo .. package $pkg
+        echo -n .. package $pkg
         fail=0
         cran2deb build $pkg >fail/$pkg >[2=1] || fail=1
         if (~ $fail 0) {
+            echo success
             grep '^[WE]:' fail/$pkg >warn/$pkg
-            if (~ `{stat -c '%s' warn/$pkg} 0) {
-                rm -f warn/$pkg
-            }
+#            if (~ `{stat -c '%s' warn/$pkg} 0) {
+#                rm -f warn/$pkg
+#            }
             rm -f fail/$pkg
+        } else {
+            echo FAILED
         }
     }
 }

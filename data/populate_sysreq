@@ -1,5 +1,7 @@
 add build-essential gcc
 add build-essential gnu make
+add build-essential none
+add build-essential % if present
 add libquantlib0-dev quantlib%
 add pari-gp pari/gp
 add libcairo2-dev cairo
@@ -16,10 +18,15 @@ add libpng12-dev libpng
 add libfreetype6-dev freetype
 add libgsl0-dev gnu scientific library
 add libgmp3-dev gmp
-add libgdal1-dev gdal
-add proj proj.4
+add libgdal1-dev %gdal%
+add proj proj%
 add libgraphviz-dev graphviz
-add imagemagick imagemagick
-add curl curl
+add libmagick9-dev imagemagick
+add curl libcurl4-openssl-dev
 add libxml2-dev libxml%
 add libfreetype6-dev %freetype
+add ggobi ggobi
+add libjpeg62-dev libjpeg%
+add libdieharder-dev dieheader%
+add msttcorefonts msttcorefonts
+add libfontconfig1-dev fontconfig

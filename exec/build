@@ -6,20 +6,21 @@ go <- function(name,extra_deps) {
     pkg <- try((function() {
         # see if it has already been built
         srcname <- pkgname_as_debian(name,binary=F)
+        debname <- pkgname_as_debian(name,binary=T)
         version <- version_new(available[name,'Version'])
         if (file.exists(changesfile(srcname, version))) {
             message(paste('N: already built',srcname,'version',version))
-            return(pkg)
+            return(NA)
         }
-        rm(srcname,version)
+        # XXX: what about building newer versions?
+        if (debname %in% debian_pkgs) {
+            message(paste('N:',srcname,' exists in Debian (perhaps a different version)'))
+            return(NA)
+        }
+
+        rm(debname,srcname,version)
 
         pkg <- prepare_new_debian(prepare_pkg(dir,name),extra_deps)
-        # XXX: what about building newer versions?
-        if (pkg$debname %in% debian_pkgs) {
-            message(paste('N:',pkg$srcname,' exists in Debian (perhaps a different version)'))
-            return(pkg)
-        }
-
         # delete the current archive (XXX: assumes mini-dinstall)
         for (subdir in c('mini-dinstall','unstable')) {
             path = file.path(dinstall_archive,subdir)

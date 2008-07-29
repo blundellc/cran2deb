@@ -50,6 +50,7 @@ sysreqs_as_debian <- function(sysreq_text) {
     # form of this field is unspecified (ugh) but most people seem to stick
     # with this
     debs <- c()
+    sysreq_text <- gsub('[[:space:]]and[[:space:]]',' , ',tolower(sysreq_text))
     for (sysreq in strsplit(sysreq_text,'[[:space:]]*,[[:space:]]*')[[1]]) {
         startreq = sysreq
         # constant case

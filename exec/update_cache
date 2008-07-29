@@ -10,7 +10,7 @@ mirror <- 'http://cran.r-project.org/'
 
 message('updating list of available R packages...')
 available <- available.packages(contrib.url(mirror))
-available <- rbind(available,available.packages(contrib.url('http://www.bioconductor.org/')))
+#available <- rbind(available,available.packages(contrib.url('http://www.bioconductor.org/')))
 
 message('updating list of available R task views...')
 ctv.available <- available.views(repo=mirror)

@@ -29,7 +29,7 @@ db_stop <- function(con) {
 }
 
 db_quote <- function(text) {
-    return(paste('"',gsub('([^][[:alnum:]*?. ()<>:/=+-])','\\\\\\1',text),'"',sep=''))
+    return(paste('"',gsub('([^][[:alnum:]*?. ()<>:/=+%-])','\\\\\\1',text),'"',sep=''))
 }
 
 db_sysreq_override <- function(sysreq_text) {
@@ -37,7 +37,7 @@ db_sysreq_override <- function(sysreq_text) {
     con <- db_start()
     results <- dbGetQuery(con,paste(
                     'SELECT DISTINCT debian_name FROM sysreq_override WHERE'
-                            ,db_quote(sysreq_text),'GLOB r_pattern'))
+                            ,db_quote(sysreq_text),'LIKE r_pattern'))
     db_stop(con)
     if (length(results) == 0) {
         return(NA)

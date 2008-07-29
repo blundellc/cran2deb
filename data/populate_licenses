@@ -38,10 +38,13 @@ pkg distrib-noncomm PTAk
 pkg distrib-noncomm siggenes
 pkg GPL+ACM akima
 pkg GPL+ACM tripack
+pkg GPL degreenet
 pkg GPL ergm
 pkg GPL gmodels
 pkg GPL ICE
+pkg GPL latentnet
 pkg GPL network
+pkg GPL networksis
 pkg GPL pastecs
 pkg GPL pbatR
 pkg GPL PKtools
@@ -50,6 +53,7 @@ pkg GPL reldist
 pkg GPL RXshrink
 pkg GPL snpMatrix
 pkg GPL splancs
+pkg GPL statnet
 pkg GPL uroot
 pkg LGPL R.huge
 pkg MCLUST mclust
