@@ -27,6 +27,6 @@ add libxml2-dev libxml%
 add libfreetype6-dev %freetype
 add ggobi ggobi
 add libjpeg62-dev libjpeg%
-add libdieharder-dev dieheader%
+add libdieharder-dev dieharder%
 add msttcorefonts msttcorefonts
 add libfontconfig1-dev fontconfig
