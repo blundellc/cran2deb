@@ -69,4 +69,20 @@ pkg UNCLEAR titecrm
 pkg UNCLEAR tlnise
 pkg UNLIMITED boolean
 pkg GPLQA regtest
+pkg GPL gllm
+pkg GPL rake
+pkg GPL Rigroup
+pkg GPL ICEinfer
+pkg GPL partsm
+pkg GPL timsac
+pkg GPL HTMLapplets
+pkg GPL moc
 ls
+pkg GPL ibdreg
+pkg AGPL accuracy
+pkg GPL TWIX
+pkg GPL aplpack
+accept distrib-noncomm
+accept GPL+ACM
+accept MCLUST
+accept UNCLEAR

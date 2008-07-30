@@ -78,7 +78,7 @@ exec_cmd <- function(argc, argv) {
         })())
         cleanup(tmp)
         if (inherits(success,'try-error')) {
-            stop(call.=F)
+            return()
         }
     } else if (cmd == 'view') {
         if (argc != 2) {
@@ -100,7 +100,7 @@ exec_cmd <- function(argc, argv) {
         })())
         cleanup(tmp)
         if (inherits(success,'try-error')) {
-            stop(call.=F)
+            return()
         }
     } else if (cmd == 'ls') {
         for (x in db_license_overrides()) print(x)
