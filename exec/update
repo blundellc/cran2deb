@@ -12,13 +12,21 @@ if ([ ! -e $root/var/archive ]) {
     mkdir $root/var/archive || exit 1
 }
 mini-dinstall --batch -c $root/etc/mini-dinstall.conf || exit 1
-if (! ~ $1 quick) {
+delta=`{hoc -e `{date +%s}^-^`{stat -c '%Y' /var/cache/cran2deb/cache.rda}}
+update_period=10800
+echo Cache is $delta seconds out of date.
+if (~ $1 full) {
+    delta=`{hoc -e $update_period^'+1'}
+}
+if (![ -e /var/cache/cran2deb/cache.rda ] || [ $delta -gt $update_period ]) {
     mode=create
     if ([ -e /var/cache/pbuilder/base-cran2deb.tgz ]) {
         mode=update
     }
     sudo pbuilder $mode --override-config --configfile $root/etc/pbuilderrc
     $root/exec/update_cache $root
-    $root/exec/license <$root/data/populate_licenses
-    $root/exec/sysreq <$root/data/populate_sysreq
 }
+if (![ -e /var/cache/cran2deb/cran2deb.db ] || [ $delta -gt $update_period ]) {
+    cat $root/data/^(populate_licenses quit) | $root/exec/license $root
+}
+cat $root/data/^(populate_depend_aliases populate_sysreq populate_forcedep quit) | $root/exec/depend $root

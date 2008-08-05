@@ -1,0 +1,4 @@
+force java rJava
+force sqlite RSQLite
+force boost RBGL
+force netcdf ncdf

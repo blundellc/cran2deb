@@ -17,8 +17,14 @@ get_dependencies <- function(pkg,extra_deps) {
     # add the system requirements
     if ('SystemRequirements' %in% colnames(pkg$description)) {
         sysreq <- sysreqs_as_debian(pkg$description[1,'SystemRequirements'])
-        depends$bin = c(sysreq,depends$bin)
-        depends$build = c(sysreq,depends$build)
+        depends$bin = c(sysreq$bin,depends$bin)
+        depends$build = c(sysreq$build,depends$build)
+    }
+
+    forced <- forced_deps_as_debian(pkg$name)
+    if (length(forced)) {
+        depends$bin = c(forced$bin,depends$bin)
+        depends$build = c(forced$build,depends$build)
     }
 
     # make sure we depend upon R in some way...
@@ -49,7 +55,7 @@ get_dependencies <- function(pkg,extra_deps) {
 sysreqs_as_debian <- function(sysreq_text) {
     # form of this field is unspecified (ugh) but most people seem to stick
     # with this
-    debs <- c()
+    aliases <- c()
     sysreq_text <- gsub('[[:space:]]and[[:space:]]',' , ',tolower(sysreq_text))
     for (sysreq in strsplit(sysreq_text,'[[:space:]]*,[[:space:]]*')[[1]]) {
         startreq = sysreq
@@ -66,20 +72,32 @@ sysreqs_as_debian <- function(sysreq_text) {
         sysreq = gsub('(ht|f)tps?://[[:alnum:]!?*"\'(),%$_@.&+/=-]*','',sysreq)
         # squish out space
         sysreq = chomp(gsub('[[:space:]]+',' ',sysreq))
-        deb <- db_sysreq_override(sysreq)
-        if (is.na(deb)) {
+        alias <- db_sysreq_override(sysreq)
+        if (is.na(alias)) {
             message(paste('E: do not know what to do with SystemRequirement:',sysreq))
             message(paste('E: original SystemRequirement:',startreq))
             stop('unmet system requirement')
         }
-        message(paste('N: mapped SystemRequirement',startreq,'onto',deb,'via',sysreq))
-        if (deb == 'build-essential') {
-            # already in any build environment so no explicit depend.
-            message(paste('N: SystemRequirement',startreq,'dropped'))
-        } else {
-            debs = c(debs,deb)
-        }
+        message(paste('N: mapped SystemRequirement',startreq,'onto',alias,'via',sysreq))
+        aliases = c(aliases,alias)
     }
+    return(map_aliases_to_debian(aliases))
+}
+
+forced_deps_as_debian <- function(r_name) {
+    aliases <- db_get_forced_depends(r_name)
+    return(map_aliases_to_debian(aliases))
+}
+
+map_aliases_to_debian <- function(aliases) {
+    if (!length(aliases)) {
+        return(aliases)
+    }
+    debs <- list()
+    debs$bin = unlist(sapply(aliases, db_get_depends))
+    debs$build = unlist(sapply(aliases, db_get_depends, build=T))
+    debs$bin = debs$bin[debs$bin != 'build-essential']
+    debs$build = debs$build[debs$build != 'build-essential']
     return(debs)
 }
 
