@@ -29,4 +29,7 @@ if (![ -e /var/cache/cran2deb/cache.rda ] || [ $delta -gt $update_period ]) {
 if (![ -e /var/cache/cran2deb/cran2deb.db ] || [ $delta -gt $update_period ]) {
     cat $root/data/^(populate_licenses quit) | $root/exec/license $root
 }
-cat $root/data/^(populate_depend_aliases populate_sysreq populate_forcedep quit) | $root/exec/depend $root
+if (![ -e /var/cache/cran2deb/cran2deb.db ]) {
+    cat $root/data/^(populate_depend_aliases populate_sysreq populate_forcedep quit) | $root/exec/depend $root
+}
+

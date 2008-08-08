@@ -37,15 +37,42 @@ db_start <- function() {
                   ,',sha1 TEXT PRIMARY KEY NOT NULL'
                   ,')'))
     }
+    if (!dbExistsTable(con,'database_versions')) {
+        dbGetQuery(con,paste('CREATE TABLE database_versions ('
+                  ,' version INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
+                  ,',version_date INTEGER NOT NULL'
+                  ,')'))
+        db_add_version(con,1)
+    }
     return(con)
 }
 
-db_stop <- function(con) {
+db_stop <- function(con,bump=F) {
+    if (bump) {
+        db_bump()
+    }
     dbDisconnect(con)
 }
 
 db_quote <- function(text) {
     return(paste('"',gsub('([^][[:alnum:]*?. ()<>:/=+%-])','\\\\\\1',text),'"',sep=''))
+}
+
+db_now <- function() {
+    return(as.integer(gsub('-','',Sys.Date())))
+}
+
+db_cur_version <- function(con) {
+    return(as.integer(dbGetQuery(con, 'SELECT max(version) FROM database_versions')[[1]]))
+}
+
+db_add_version <- function(con, version) {
+    dbGetQuery(con,paste('INSERT INTO database_versions (version,version_date)'
+              ,'VALUES (',as.integer(version),',',db_now(),')'))
+}
+
+db_bump <- function(con) {
+    db_add_version(con,db_cur_version(con)+1)
 }
 
 db_sysreq_override <- function(sysreq_text) {
@@ -68,7 +95,7 @@ db_add_sysreq_override <- function(pattern,depend_alias) {
                     ,' ',db_quote(tolower(depend_alias))
                     ,',',db_quote(tolower(pattern))
                     ,')'))
-    db_stop(con)
+    db_stop(con,TRUE)
 }
 
 db_sysreq_overrides <- function() {
@@ -97,7 +124,7 @@ db_add_depends <- function(depend_alias,debian_pkg,build=F) {
                     ,',',as.integer(build)
                     ,',',db_quote(tolower(debian_pkg))
                     ,')'))
-    db_stop(con)
+    db_stop(con,TRUE)
 }
 
 db_depends <- function() {
@@ -126,7 +153,7 @@ db_add_forced_depends <- function(r_name, depend_alias) {
     dbGetQuery(con,
             paste('INSERT OR REPLACE INTO forced_depends (r_name, depend_alias)'
                  ,'VALUES (',db_quote(r_name),',',db_quote(depend_alias),')'))
-    db_stop(con)
+    db_stop(con,TRUE)
 }
 
 db_forced_depends <- function() {
@@ -160,7 +187,7 @@ db_add_license_override <- function(name,accept) {
                     ,' ',db_quote(tolower(name))
                     ,',',as.integer(accept)
                     ,')'))
-    db_stop(con)
+    db_stop(con,TRUE)
 }
 
 db_license_override_hash <- function(license_sha1) {
@@ -182,7 +209,6 @@ db_license_overrides <- function() {
     overrides <- dbGetQuery(con,paste('SELECT * FROM license_override'))
     hashes    <- dbGetQuery(con,paste('SELECT * FROM license_hashes'))
     db_stop(con)
-    # TODO: change accept from 0,1 into FALSE,TRUE
     return(list(overrides=overrides,hashes=hashes))
 }
 
@@ -198,6 +224,6 @@ db_add_license_hash <- function(name,license_sha1) {
         ,' ',db_quote(tolower(name))
         ,',',db_quote(tolower(license_sha1))
         ,')'))
-    db_stop(con)
+    db_stop(con,TRUE)
 }
 
