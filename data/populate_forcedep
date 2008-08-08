@@ -1,4 +1,5 @@
 force java rJava
 force sqlite RSQLite
+force sqlite SQLiteDF
 force boost RBGL
 force netcdf ncdf
