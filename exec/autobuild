@@ -1,0 +1,12 @@
+#!/usr/bin/env r
+suppressMessages(library(cran2deb))
+
+if (exists('argv')) { # check for littler
+    db_update_package_versions()
+    outdated <- db_outdated_packages()
+    build_order <- r_dependency_closure(outdated)
+    message(paste('N: build order',paste(build_order,collapse=', ')))
+    for (pkg in build_order) {
+        build(pkg,extra_deps)
+    }
+}

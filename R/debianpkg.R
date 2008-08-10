@@ -136,18 +136,3 @@ prepare_new_debian <- function(pkg,extra_deps) {
     }
     return(pkg)
 }
-
-build_debian <- function(pkg) {
-    wd <- getwd()
-    setwd(pkg$path)
-    message(paste('N: building Debian package'
-                 ,pkg$debname
-                 ,paste('(',pkg$debversion,')',sep='')
-                 ,'...'))
-    ret = system(paste('pdebuild --configfile',shQuote(pbuilder_config)))
-    setwd(wd)
-    if (ret != 0) {
-        stop('Failed to build package.')
-    }
-}
-
