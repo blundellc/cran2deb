@@ -91,6 +91,13 @@ db_base_epoch <- function(con) {
              ,'WHERE version IN (SELECT max(version) FROM database_versions)'))[[1]]))
 }
 
+db_get_base_epoch <- function() {
+    con <- db_start()
+    v <- db_base_epoch(con)
+    db_stop(con)
+    return(v)
+}
+
 db_add_version <- function(con, version, epoch) {
     dbGetQuery(con,paste('INSERT INTO database_versions (version,version_date,base_epoch)'
               ,'VALUES (',as.integer(version),',',db_now(),',',as.integer(epoch),')'))

@@ -1,4 +1,4 @@
-version_new <- function(rver,debian_revision=1, debian_epoch=0) {
+version_new <- function(rver,debian_revision=1, debian_epoch=db_get_base_epoch()) {
     # generate a string representation of the Debian version of an
     # R version of a package
     pkgver = rver
@@ -36,7 +36,7 @@ version_epoch <- function(pkgver) {
     return(as.integer(sub('^([0-9]+):.*','\\1',pkgver)))
 }
 # version_epoch . version_new(x,y) = id
-# version_epoch(version_new(x,y)) = 0
+# version_epoch(version_new(x,y)) = base_epoch
 
 version_revision <- function(pkgver) {
     # return the Debian revision of a Debian package version
