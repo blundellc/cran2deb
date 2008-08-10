@@ -2,7 +2,6 @@
 db_start <- function() {
     drv <- dbDriver('SQLite')
     con <- dbConnect(drv, dbname=file.path(cache_root,'cran2deb.db'))
-    tables <- dbListTables(con)
     if (!dbExistsTable(con,'sysreq_override')) {
         dbGetQuery(con,paste('CREATE TABLE sysreq_override ('
                   ,' depend_alias TEXT NOT NULL'
@@ -41,15 +40,35 @@ db_start <- function() {
         dbGetQuery(con,paste('CREATE TABLE database_versions ('
                   ,' version INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
                   ,',version_date INTEGER NOT NULL'
+                  ,',base_epoch INTEGER NOT NULL'
                   ,')'))
-        db_add_version(con,1)
+        db_add_version(con,1,0)
+    }
+    if (!dbExistsTable(con,'packages')) {
+        dbGetQuery(con,paste('CREATE TABLE packages ('
+                  ,' package TEXT PRIMARY KEY NOT NULL'
+                  ,',latest_r_version TEXT'
+                  ,')'))
+    }
+    if (!dbExistsTable(con,'builds')) {
+        dbGetQuery(con,paste('CREATE TABLE builds ('
+                  ,' id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
+                  ,',package TEXT NOT NULL'
+                  ,',r_version TEXT NOT NULL'
+                  ,',deb_epoch INTEGER NOT NULL'
+                  ,',deb_revision INTEGER NOT NULL'
+                  ,',db_version INTEGER NOT NULL'
+                  ,',success INTEGER NOT NULL'
+                  ,',log TEXT'
+                  ,',UNIQUE(package,r_version,deb_epoch,deb_revision,db_version)'
+                  ,')'))
     }
     return(con)
 }
 
 db_stop <- function(con,bump=F) {
     if (bump) {
-        db_bump()
+        db_bump(con)
     }
     dbDisconnect(con)
 }
@@ -66,13 +85,23 @@ db_cur_version <- function(con) {
     return(as.integer(dbGetQuery(con, 'SELECT max(version) FROM database_versions')[[1]]))
 }
 
-db_add_version <- function(con, version) {
-    dbGetQuery(con,paste('INSERT INTO database_versions (version,version_date)'
-              ,'VALUES (',as.integer(version),',',db_now(),')'))
+db_base_epoch <- function(con) {
+    return(as.integer(dbGetQuery(con,
+        paste('SELECT max(base_epoch) FROM database_versions'
+             ,'WHERE version IN (SELECT max(version) FROM database_versions)'))[[1]]))
+}
+
+db_add_version <- function(con, version, epoch) {
+    dbGetQuery(con,paste('INSERT INTO database_versions (version,version_date,base_epoch)'
+              ,'VALUES (',as.integer(version),',',db_now(),',',as.integer(epoch),')'))
 }
 
 db_bump <- function(con) {
-    db_add_version(con,db_cur_version(con)+1)
+    db_add_version(con,db_cur_version(con)+1, db_base_epoch(con))
+}
+
+db_bump_epoch <- function(con) {
+    db_add_version(con,db_cur_version(con)+1, db_base_epoch(con)+1)
 }
 
 db_sysreq_override <- function(sysreq_text) {
@@ -225,5 +254,58 @@ db_add_license_hash <- function(name,license_sha1) {
         ,',',db_quote(tolower(license_sha1))
         ,')'))
     db_stop(con,TRUE)
+}
+
+
+db_update_package_versions <- function() {
+    con <- db_start()
+    for (package in available[,'Package']) {
+        dbGetQuery(con, paste('INSERT OR REPLACE INTO packages (package,latest_r_version)'
+                             ,'VALUES (',db_quote(package)
+                             ,',',db_quote(available[package,'Version']),')'))
+    }
+    db_stop(con)
+}
+
+db_record_build <- function(package, deb_version, log, success=F) {
+    con <- db_start()
+    dbGetQuery(con,paste('INSERT INTO builds'
+                        ,'(package,r_version,deb_epoch,deb_revision,db_version,success,log)'
+                        ,'VALUES'
+                        ,'(',db_quote(package)
+                        ,',',db_quote(version_upstream(deb_version))
+                        ,',',db_quote(version_epoch(deb_version))
+                        ,',',db_quote(version_revision(deb_version))
+                        ,',',db_cur_version(con)
+                        ,',',as.integer(success)
+                        ,',',log
+                        ,')'))
+    db_stop(con)
+}
+
+db_outdated_packages <- function() {
+    con <- db_start()
+    packages <- dbGetQuery(con,paste('SELECT packages.package FROM packages'
+               ,'LEFT OUTER JOIN ('
+               # extract the latest attempt at building each package
+               ,      'SELECT * FROM builds'
+               ,      'NATURAL JOIN (SELECT package,max(id) AS max_id FROM builds'
+               ,                    'GROUP BY package) AS last'
+               ,      'WHERE id = max_id) AS build'
+               ,'ON build.package = packages.package'
+               # outdated iff:
+               # - there is no latest build
+               ,'WHERE build.package IS NULL'
+               # - the database has changed since last build
+               ,'OR build.db_version < (SELECT max(version) FROM database_versions)'
+               # - the debian epoch has been bumped up
+               ,'OR build.deb_epoch < (SELECT max(base_epoch) FROM database_versions'
+               ,                        'WHERE version IN ('
+               ,                            'SELECT max(version) FROM database_versions))'
+               # - the latest build is not of the latest R version
+               ,'OR build.r_version != packages.latest_r_version'
+               ))$package
+    db_stop(con)
+    return(packages)
 }
 
