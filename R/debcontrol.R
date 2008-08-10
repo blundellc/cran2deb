@@ -74,11 +74,11 @@ sysreqs_as_debian <- function(sysreq_text) {
         sysreq = chomp(gsub('[[:space:]]+',' ',sysreq))
         alias <- db_sysreq_override(sysreq)
         if (is.na(alias)) {
-            message(paste('E: do not know what to do with SystemRequirement:',sysreq))
-            message(paste('E: original SystemRequirement:',startreq))
-            stop('unmet system requirement')
+            error('do not know what to do with SystemRequirement:',sysreq)
+            error('original SystemRequirement:',startreq)
+            fail('unmet system requirement')
         }
-        message(paste('N: mapped SystemRequirement',startreq,'onto',alias,'via',sysreq))
+        notice('mapped SystemRequirement',startreq,'onto',alias,'via',sysreq)
         aliases = c(aliases,alias)
     }
     return(map_aliases_to_debian(aliases))

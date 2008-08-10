@@ -14,7 +14,6 @@ exec_cmd <- function(argc, argv) {
                      ,'       quit'
                      ,sep='\n'))
 
-    message(paste('N: command',paste(argv,collapse=' ')))
     if (argc < 1) {
         return()
     }

@@ -6,7 +6,7 @@ repourl_as_debian <- function(url) {
     if (length(grep('bioc',url))) {
         return('bioc')
     }
-    stop(paste('unknown repository',url))
+    fail('unknown repository',url)
 }
 
 pkgname_as_debian <- function(name,repopref=NULL,version=NULL,binary=T,build=F) {
@@ -31,7 +31,7 @@ pkgname_as_debian <- function(name,repopref=NULL,version=NULL,binary=T,build=F) 
         if (!(name %in% rownames(available))) {
             bundle <- r_bundle_of(name)
             if (is.na(bundle)) {
-                stop(paste('package',name,'is not available'))
+                fail('package',name,'is not available')
             }
             name <- bundle
         }

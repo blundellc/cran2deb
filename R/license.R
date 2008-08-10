@@ -13,17 +13,17 @@ is_acceptable_license <- function(license) {
     license <- license_text_further_reduce(license)
     action = db_license_override_name(license)
     if (!is.na(action)) {
-        message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
+        warn('Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!')
         return(action)
     }
     license <- license_text_extreme_reduce(license)
     action = db_license_override_name(license)
     if (!is.na(action)) {
-        message(paste('W: Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!'))
+        warn('Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!')
         return(action)
     }
     # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
-    message(paste('E: Wild license',license,'did not match classic rules; rejecting'))
+    error('Wild license',license,'did not match classic rules; rejecting')
     return(F)
 }
 
@@ -89,7 +89,7 @@ get_license <- function(pkg,license) {
             path = file.path(pkg$path, path)
             license <- license_text_reduce(readChar(path,file.info(path)$size))
         } else {
-            message(paste('E: invalid license file specification',license))
+            error('invalid license file specification',license)
             return(NA)
         }
     }
@@ -110,7 +110,7 @@ is_acceptable_hash_license <- function(pkg,license) {
         action = FALSE
     }
     if (action) {
-        message(paste('W: Wild license',license,'accepted via hash',license_sha1))
+        warn('Wild license',license,'accepted via hash',license_sha1)
     }
     return(action)
 }
@@ -119,7 +119,7 @@ is_acceptable_hash_license <- function(pkg,license) {
 accept_license <- function(pkg) {
     # check the license
     if (!('License' %in% names(pkg$description[1,]))) {
-        stop('package has no License: field in description!')
+        fail('package has no License: field in description!')
     }
     accept=NULL
     for (license in strsplit(chomp(pkg$description[1,'License'])
@@ -134,9 +134,9 @@ accept_license <- function(pkg) {
         }
     }
     if (is.null(accept)) {
-        stop(paste('No acceptable license:',pkg$description[1,'License']))
+        fail('No acceptable license:',pkg$description[1,'License'])
     } else {
-        message(paste('N: Auto-accepted license',accept))
+        notice('Auto-accepted license',accept)
     }
     if (accept == 'Unlimited') {
         # definition of Unlimited from ``Writing R extensions''

@@ -15,8 +15,8 @@ host_arch <- function() {
     system('dpkg-architecture -qDEB_HOST_ARCH',intern=T)
 }
 
-err <- function(text) {
-    message(paste('E:',text))
+err <- function(...) {
+    error(...)
     exit()
 }
 

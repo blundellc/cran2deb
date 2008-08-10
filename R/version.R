@@ -6,14 +6,14 @@ version_new <- function(rver,debian_revision=1, debian_epoch=0) {
     # ``Writing R extensions'' says that the version consists of at least two
     # non-negative integers, separated by . or -
     if (!length(grep('^([0-9]+[.-])+[0-9]+$',rver))) {
-        stop(paste('Not a valid R package version',rver))
+        fail('Not a valid R package version',rver)
     }
 
     # Debian policy says that an upstream version should start with a digit and
     # may only contain ASCII alphanumerics and '.+-:~'
     if (!length(grep('^[0-9][A-Za-z0-9.+:~-]*$',rver))) {
-        stop(paste('R package version',rver
-                  ,'does not obviously translate into a valid Debian version.'))
+        fail('R package version',rver
+                  ,'does not obviously translate into a valid Debian version.')
     }
 
     # if rver contains a : then the Debian version must also have a colon
@@ -68,3 +68,13 @@ version_update <- function(rver, prev_pkgver) {
                       ,debian_epoch = version_epoch(prev_pkgver)
                       ))
 }
+
+new_build_version <- function(pkgname) {
+    db_ver <- db_latest_build_version(pkgname)
+    latest_r_ver <- available[pkgname,'Version']
+    if (!is.na(db_ver)) {
+        return(version_update(latest_r_ver, db_ver))
+    }
+    return(version_new(latest_r_ver))
+}
+

@@ -54,15 +54,20 @@ generate_copyright <- function(pkg) {
 prepare_new_debian <- function(pkg,extra_deps) {
     # generate Debian version and name
     pkg$repo = repourl_as_debian(pkg$repoURL)
-    pkg$debversion = version_new(pkg$version)
+    if (pkg$version != available[pkg$name,'Version']) {
+        # should never happen since available is the basis upon which the
+        # package is retrieved.
+        fail('inconsistency between R package version and cached R version')
+    }
+    pkg$debversion = new_build_version(pkg$name)
     if (!length(grep('^[A-Za-z0-9][A-Za-z0-9+.-]+$',pkg$name))) {
-        stop(paste('Cannot convert package name into a Debian name',pkg$name))
+        fail('Cannot convert package name into a Debian name',pkg$name)
     }
     pkg$srcname = tolower(pkg$name)
     pkg$debname = pkgname_as_debian(pkg$name,repo=pkg$repo)
 
     if (!length(grep('\\.tar\\.gz',pkg$archive))) {
-        stop('archive is not tarball')
+        fail('archive is not tarball')
     }
 
     # re-pack into a Debian-named archive with a Debian-named directory.

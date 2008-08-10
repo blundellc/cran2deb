@@ -20,7 +20,7 @@ r_requiring <- function(names) {
         if (!(name %in% base_pkgs) && !(name %in% rownames(available))) {
             bundle <- r_bundle_of(name)
             if (is.na(bundle)) {
-                stop(paste('package',name,'is not available'))
+                fail('package',name,'is not available')
             }
             name = bundle
             names <- c(names,bundle)
@@ -64,13 +64,13 @@ r_dependencies_of <- function(name=NULL,description=NULL) {
         return(data.frame())
     }
     if (is.null(description) && is.null(name)) {
-        stop('must specify either a description or a name.')
+        fail('must specify either a description or a name.')
     }
     if (is.null(description)) {
         if (!(name %in% rownames(available))) {
             bundle <- r_bundle_of(name)
             if (is.na(bundle)) {
-                stop(paste('package',name,'is not available'))
+                fail('package',name,'is not available')
             }
             name <- bundle
         }
@@ -108,7 +108,7 @@ r_parse_dep_field <- function(dep) {
     # parse version
     pat = '^([^ ()]+) ?(\\( ?([<=>!]+ ?[0-9.-]+) ?\\))?$'
     if (!length(grep(pat,dep))) {
-        stop(paste('R dependency',dep,'does not appear to be well-formed'))
+        fail('R dependency',dep,'does not appear to be well-formed')
     }
     version = sub(pat,'\\3',dep)
     dep = sub(pat,'\\1',dep)

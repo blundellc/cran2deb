@@ -175,8 +175,8 @@ db_get_forced_depends <- function(r_name) {
 db_add_forced_depends <- function(r_name, depend_alias) {
     if (!length(db_get_depends(depend_alias,build=F)) &&
         !length(db_get_depends(depend_alias,build=T))) {
-        stop(paste('Debian dependency alias',depend_alias,'is not know,'
-                  ,'yet trying to force a dependency on it?'))
+        fail('Debian dependency alias',depend_alias,'is not know,'
+                  ,'yet trying to force a dependency on it?')
     }
     con <- db_start()
     dbGetQuery(con,
@@ -205,9 +205,9 @@ db_license_override_name <- function(name) {
 }
 
 db_add_license_override <- function(name,accept) {
-    message(paste('adding',name,'accept?',accept))
+    notice('adding',name,'accept?',accept)
     if (accept != TRUE && accept != FALSE) {
-        stop('accept must be TRUE or FALSE')
+        fail('accept must be TRUE or FALSE')
     }
     con <- db_start()
     results <- dbGetQuery(con,paste(
@@ -243,9 +243,9 @@ db_license_overrides <- function() {
 
 db_add_license_hash <- function(name,license_sha1) {
     if (is.na(db_license_override_name(name))) {
-        stop(paste('license',name,'is not know, yet trying to add a hash for it?'))
+        fail('license',name,'is not know, yet trying to add a hash for it?')
     }
-    message(paste('adding hash',license_sha1,'for',name))
+    notice('adding hash',license_sha1,'for',name)
     con <- db_start()
     dbGetQuery(con,paste(
          'INSERT OR REPLACE INTO license_hashes'
@@ -278,9 +278,36 @@ db_record_build <- function(package, deb_version, log, success=F) {
                         ,',',db_quote(version_revision(deb_version))
                         ,',',db_cur_version(con)
                         ,',',as.integer(success)
-                        ,',',log
+                        ,',',db_quote(paste(log, collapse='\n'))
                         ,')'))
     db_stop(con)
+}
+
+db_latest_build <- function(pkgname) {
+    con <- db_start()
+    build <- dbGetQuery(con, paste('SELECT * FROM builds'
+                       ,'NATURAL JOIN (SELECT package,max(id) AS max_id FROM builds'
+                       ,              'GROUP BY package) AS last'
+                       ,'WHERE id = max_id'
+                       ,'AND builds.package =',db_quote(pkgname)))
+    db_stop(con)
+    return(build)
+}
+
+db_latest_build_version <- function(pkgname) {
+    build <- db_latest_build(pkgname)
+    if (length(build) == 0) {
+        return(NA)
+    }
+    return(version_new(build$r_version, build$deb_revision, build$deb_epoch))
+}
+
+db_latest_build_status <- function(pkgname) {
+    build <- db_latest_build(pkgname)
+    if (length(build) == 0) {
+        return(NA)
+    }
+    return(c(build$success,build$log))
 }
 
 db_outdated_packages <- function() {

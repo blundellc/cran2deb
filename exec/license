@@ -34,7 +34,7 @@ exec_cmd <- function(argc, argv) {
         license = argv[2]
         path = argv[3]
         if (is.na(db_license_override_name(license))) {
-            message(paste('E: license',license,'is not known; add it first'))
+            error('license',license,'is not known; add it first')
             return()
         }
         if (file.exists(path)) {
@@ -43,7 +43,7 @@ exec_cmd <- function(argc, argv) {
         } else if (length(grep('^[0-9a-f]{40}$',path))) {
             license_sha1 = path
         } else {
-            message(paste('E:',path,'does not exist and does not look like an SHA1 hash'))
+            error(path,'does not exist and does not look like an SHA1 hash')
             return()
         }
         db_add_license_hash(license,license_sha1)
@@ -56,19 +56,19 @@ exec_cmd <- function(argc, argv) {
         pkg_name <- argv[3]
         current_action <- db_license_override_name(license)
         if (is.na(current_action)) {
-            message(paste('N: license',license,'is not known; add it'))
+            notice('license',license,'is not known; add it')
             return()
         }
         action = 'accept'
         if (!current_action) {
             action = 'reject'
         }
-        message(paste('in future, will',action,'the package',pkg_name,'under license',license))
+        notice('in future, will',action,'the package',pkg_name,'under license',license)
         tmp <- setup()
         success <- try((function() {
             pkg <- prepare_pkg(tmp,pkg_name)
             if (!('License' %in% names(pkg$description[1,]))) {
-                message(paste('E: package',pkg$name,'has no License: field in DESCRIPTION'))
+                error('package',pkg$name,'has no License: field in DESCRIPTION')
                 return()
             }
             first_license = (strsplit(chomp(pkg$description[1,'License'])
@@ -90,7 +90,7 @@ exec_cmd <- function(argc, argv) {
         success <- try((function() {
             pkg <- prepare_pkg(tmp,pkg_name)
             if (!('License' %in% names(pkg$description[1,]))) {
-                message(paste('E: package',pkg$name,'has no License: field in DESCRIPTION'))
+                error('package',pkg$name,'has no License: field in DESCRIPTION')
                 return()
             }
             first_license = (strsplit(chomp(pkg$description[1,'License'])
