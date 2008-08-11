@@ -30,14 +30,17 @@ pkgname_as_debian <- function(name,repopref=NULL,version=NULL,binary=T,build=F) 
         #      now.
         if (!(name %in% rownames(available))) {
             bundle <- r_bundle_of(name)
-            if (is.na(bundle)) {
-                fail('package',name,'is not available')
+            if (!is.na(bundle)) {
+                name <- bundle
             }
-            name <- bundle
         }
         debname = tolower(name)
         if (binary) {
-            repopref <- tolower(repourl_as_debian(available[name,'Repository']))
+            if (name %in% rownames(available)) {
+                repopref <- tolower(repourl_as_debian(available[name,'Repository']))
+            } else if (is.null(repopref)) {
+                repopref <- 'unknown'
+            }
             debname = paste('r',repopref,debname,sep='-')
         }
     }

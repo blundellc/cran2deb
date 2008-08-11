@@ -19,13 +19,12 @@ r_requiring <- function(names) {
     for (name in names) {
         if (!(name %in% base_pkgs) && !(name %in% rownames(available))) {
             bundle <- r_bundle_of(name)
-            if (is.na(bundle)) {
-                fail('package',name,'is not available')
+            if (!is.na(bundle)) {
+                name = bundle
+                names <- c(names,bundle)
             }
-            name = bundle
-            names <- c(names,bundle)
         }
-        if (!is.na(available[name,'Contains'])) {
+        if (name %in% rownames(available) && !is.na(available[name,'Contains'])) {
             names <- c(names,r_bundle_contains(name))
         }
     }
@@ -69,10 +68,12 @@ r_dependencies_of <- function(name=NULL,description=NULL) {
     if (is.null(description)) {
         if (!(name %in% rownames(available))) {
             bundle <- r_bundle_of(name)
-            if (is.na(bundle)) {
-                fail('package',name,'is not available')
+            if (!is.na(bundle)) {
+                name <- bundle
+            } else {
+                # unavailable packages don't depend upon anything
+                return(data.frame())
             }
-            name <- bundle
         }
         description <- data.frame()
         # keep only the interesting fields
