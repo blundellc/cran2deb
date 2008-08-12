@@ -1,6 +1,6 @@
 .First.lib <- function(libname, pkgname) {
     global <- function(name,value) assign(name,value,envir=.GlobalEnv)
-    global("maintainer", 'cran2deb buildbot <cran2deb@example.org>')
+    global("maintainer", 'cran2deb autobuild <cran2deb@example.org>')
     global("root", system.file(package='cran2deb'))
     global("cache_root", '/var/cache/cran2deb')
     global("pbuilder_results", '/var/cache/cran2deb/results')

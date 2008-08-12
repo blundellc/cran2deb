@@ -31,3 +31,4 @@ sysreq msttcorefonts msttcorefonts
 sysreq pari-gp pari/gp
 sysreq proj proj%
 sysreq zlib zlib
+sysreq java java
