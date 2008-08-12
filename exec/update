@@ -12,11 +12,13 @@ if ([ ! -e $root/var/archive ]) {
     mkdir $root/var/archive || exit 1
 }
 mini-dinstall --batch -c $root/etc/mini-dinstall.conf || exit 1
-delta=`{hoc -e `{date +%s}^-^`{stat -c '%Y' /var/cache/cran2deb/cache.rda}}
 update_period=10800
-echo Cache is $delta seconds out of date.
-if (~ $1 full) {
-    delta=`{hoc -e $update_period^'+1'}
+if (~ $1 full || ![ -e /var/cache/cran2deb/cache.rda ] ) {
+    delta=`{awk 'END{print '^$update_period^'+1}' </dev/null}
+    echo Forcing cache update
+} else {
+    delta=`{awk 'END{print '^`{date +%s}^-^`{stat -c '%Y' /var/cache/cran2deb/cache.rda}^'}' </dev/null}
+    echo Cache is $delta seconds out of date.
 }
 if (![ -e /var/cache/cran2deb/cache.rda ] || [ $delta -gt $update_period ]) {
     mode=create

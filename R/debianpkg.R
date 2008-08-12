@@ -57,6 +57,8 @@ prepare_new_debian <- function(pkg,extra_deps) {
     if (pkg$version != available[pkg$name,'Version']) {
         # should never happen since available is the basis upon which the
         # package is retrieved.
+        error('available version:',available[pkg$name,'Version'])
+        error('package version:',pkg$version)
         fail('inconsistency between R package version and cached R version')
     }
     pkg$debversion = new_build_version(pkg$name)
