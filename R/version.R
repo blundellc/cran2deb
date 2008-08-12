@@ -70,6 +70,13 @@ version_update <- function(rver, prev_pkgver) {
 }
 
 new_build_version <- function(pkgname) {
+    if (!(pkgname %in% rownames(available))) {
+        bundle <- r_bundle_of(pkgname)
+        if (is.na(bundle)) {
+            fail('tried to discover new version of',pkgname,'but it does not appear to be available')
+        }
+        name <- bundle
+    }
     db_ver <- db_latest_build_version(pkgname)
     latest_r_ver <- available[pkgname,'Version']
     if (!is.na(db_ver)) {
