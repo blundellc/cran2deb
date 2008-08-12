@@ -87,7 +87,12 @@ build_debian <- function(pkg) {
                  ,pkg$debname
                  ,paste('(',pkg$debversion,')',sep='')
                  ,'...')
-    ret = system(paste('pdebuild --configfile',shQuote(pbuilder_config)))
+
+    cmd = paste('pdebuild --configfile',shQuote(pbuilder_config))
+    if (version_revision(pkg$debversion) > 2) {
+        cmd = paste(cmd,'--debbuildopts','-sd')
+    }
+    ret = system(cmd)
     setwd(wd)
     if (ret != 0) {
         fail('Failed to build package.')

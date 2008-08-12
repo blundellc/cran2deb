@@ -74,7 +74,7 @@ db_stop <- function(con,bump=F) {
 }
 
 db_quote <- function(text) {
-    return(paste('"',gsub('([^][[:alnum:][:space:]*?.,()<>;:/=+%-])','\\\\\\5',text),'"',sep=''))
+    return(paste('"',gsub('([^][[:alnum:][:space:]*?.,()<>;:/=+%-])','\\\\\\1',text),'"',sep=''))
 }
 
 db_now <- function() {

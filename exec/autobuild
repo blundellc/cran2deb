@@ -7,6 +7,6 @@ if (exists('argv')) { # check for littler
     build_order <- r_dependency_closure(outdated)
     notice('build order',paste(build_order,collapse=', '))
     for (pkg in build_order) {
-        build(pkg,extra_deps)
+        build(pkg,c())
     }
 }
