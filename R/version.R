@@ -51,13 +51,17 @@ version_upstream <- function(pkgver) {
 }
 # version_upstream . version_new = id
 
-version_update <- function(rver, prev_pkgver) {
+version_update <- function(rver, prev_pkgver, prev_success) {
     # return the next debian package version
     prev_rver <- version_upstream(prev_pkgver)
     if (prev_rver == rver) {
-        # increment the Debian revision
+        # increment the Debian revision if the previous build was successful
+        inc = 0
+        if (prev_success) {
+            inc = 1
+        }
         return(version_new(rver
-                          ,debian_revision = version_revision(prev_pkgver)+1
+                          ,debian_revision = version_revision(prev_pkgver)+inc
                           ,debian_epoch    = version_epoch(prev_pkgver)
                           ))
     }
@@ -78,9 +82,10 @@ new_build_version <- function(pkgname) {
         name <- bundle
     }
     db_ver <- db_latest_build_version(pkgname)
+    db_succ <- db_latest_build_status(pkgname)[[1]]
     latest_r_ver <- available[pkgname,'Version']
-    if (!is.na(db_ver)) {
-        return(version_update(latest_r_ver, db_ver))
+    if (!is.null(db_ver)) {
+        return(version_update(latest_r_ver, db_ver, db_succ))
     }
     return(version_new(latest_r_ver))
 }
