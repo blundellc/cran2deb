@@ -40,7 +40,7 @@ prepare_pkg <- function(dir, pkgname) {
     } else {
         fail('Type of archive',archive,'is unknown.')
     }
-    ret = system(cmd)
+    ret = log_system(cmd)
     setwd(wd)
     if (ret != 0) {
         fail('Extraction of archive',archive,'failed.')

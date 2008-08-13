@@ -4,8 +4,10 @@ log_clear <- function() {
     assign('log_messages',list(),envir=.GlobalEnv)
 }
 
-log_add <- function(text) {
-    message(text)
+log_add <- function(text,print=T) {
+    if (print) {
+        message(text)
+    }
     assign('log_messages',c(log_messages, text),envir=.GlobalEnv)
 }
 
@@ -30,3 +32,32 @@ fail <- function(...) {
     log_add(txt)
     stop(txt)
 }
+
+log_system <- function(...) {
+    r <- try((function() {
+        # pipe() does not appear useful here, since
+        # we want the return value!
+        # XXX: doesn't work with ; or | !
+        tmp <- tempfile('log_system')
+        on.exit(unlink(tmp))
+        cmd <- paste(...)
+        cmd <- paste(cmd,'2>&1','| tee',tmp)
+        ret <- system(cmd)
+        f <- file(tmp)
+        output <- readLines(f)
+        close(f)
+        unlink(tmp)
+        return(list(ret,output))
+    })())
+    if (inherits(r,'try-error')) {
+        fail('system failed on:',paste(...))
+    }
+    for (line in r[[2]]) {
+        if (!length(grep('^[WENI]:',line))) {
+            line = paste('I:',line)
+        }
+        log_add(line,print=F)
+    }
+    return(r[[1]])
+}
+

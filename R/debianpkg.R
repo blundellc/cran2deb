@@ -86,10 +86,10 @@ prepare_new_debian <- function(pkg,extra_deps) {
     wd <- getwd()
     setwd(dirname(pkg$path))
     # remove them pesky +x files
-    system(paste('find',shQuote(basename(pkg$path))
-                ,'-type f -exec chmod -x {} \\;'))
+    log_system('find',shQuote(basename(pkg$path))
+                ,'-type f -exec chmod -x {} \\;')
     # tar it all back up
-    system(paste('tar -czf',shQuote(debarchive),shQuote(basename(pkg$path))))
+    log_system('tar -czf',shQuote(debarchive),shQuote(basename(pkg$path)))
     setwd(wd)
     file.remove(pkg$archive)
     pkg$archive = debarchive
@@ -136,9 +136,9 @@ prepare_new_debian <- function(pkg,extra_deps) {
     # convert text to utf8 (who knows what the original character set is --
     # let's hope iconv DTRT).
     for (file in c('control','changelog','copyright')) {
-        system(paste('iconv -o ',shQuote(pkg$debfile(file))
+        log_system('iconv -o ',shQuote(pkg$debfile(file))
                     ,' -t utf8 '
-                    ,shQuote(pkg$debfile(paste(file,'in',sep='.')))))
+                    ,shQuote(pkg$debfile(paste(file,'in',sep='.'))))
         file.remove(pkg$debfile(paste(file,'in',sep='.')))
     }
     return(pkg)

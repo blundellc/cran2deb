@@ -1,25 +1,18 @@
 
-build <- function(name,extra_deps) {
+build <- function(name,extra_deps,force=F) {
     log_clear()
     dir <- setup()
     version <- new_build_version(name)
     result <- try((function() {
-        # see if it has already been built
-        srcname <- pkgname_as_debian(name,binary=F)
-        debname <- pkgname_as_debian(name,binary=T)
-        if (file.exists(changesfile(srcname, version))) {
-            notice('already built',srcname,'version',version)
+        if (!force && !needs_build(name,version)) {
+            notice('skipping build of',name)
             return(NA)
         }
-        # XXX: what about building newer versions?
-        if (debname %in% debian_pkgs) {
-            notice(srcname,' exists in Debian (perhaps a different version)')
-            return(NA)
-        }
-
-        rm(debname,srcname)
 
         pkg <- prepare_new_debian(prepare_pkg(dir,name),extra_deps)
+        if (pkg$debversion != version) {
+            fail('expected Debian version',version,'not equal to actual version',pkg$debversion)
+        }
         # delete the current archive (XXX: assumes mini-dinstall)
         for (subdir in c('mini-dinstall','unstable')) {
             path = file.path(dinstall_archive,subdir)
@@ -32,7 +25,7 @@ build <- function(name,extra_deps) {
         file.remove(Sys.glob(file.path(pbuilder_results,'*.upload')))
 
         # make mini-dinstall generate the skeleton of the archive
-        ret = system(paste('umask 022;mini-dinstall --batch -c',dinstall_config))
+        ret = log_system('umask 022;mini-dinstall --batch -c',dinstall_config)
         if (ret != 0) {
             fail('failed to create archive')
         }
@@ -48,8 +41,8 @@ build <- function(name,extra_deps) {
             srcdep = pkgname_as_debian(dep,binary=F)
 
             notice('uploading',srcdep)
-            ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
-                        ,changesfile(srcdep)))
+            ret = log_system('umask 022;dput','-c',shQuote(dput_config),'local'
+                        ,changesfile(srcdep))
             if (ret != 0) {
                 fail('upload of dependency failed! maybe you did not build it first?')
             }
@@ -57,8 +50,8 @@ build <- function(name,extra_deps) {
         build_debian(pkg)
 
         # upload the package
-        ret = system(paste('umask 022;dput','-c',shQuote(dput_config),'local'
-                    ,changesfile(pkg$srcname,pkg$debversion)))
+        ret = log_system('umask 022;dput','-c',shQuote(dput_config),'local'
+                    ,changesfile(pkg$srcname,pkg$debversion))
         if (ret != 0) {
             fail('upload failed!')
         }
@@ -80,6 +73,37 @@ build <- function(name,extra_deps) {
     return(!failed)
 }
 
+needs_build <- function(name,version) {
+    # see if the last build was successful
+    build <- db_latest_build(name)
+    if (!is.null(build) && build$success) {
+        # then something must have changed for us to attempt this
+        # build
+        if (db_latest_build_version(name) == version &&
+            build$db_version == db_get_version()) {
+            return(F)
+        }
+    } else {
+        # always rebuild on failure or no record
+        return(T)
+    }
+    # see if it has already been built
+    srcname <- pkgname_as_debian(name,binary=F)
+    debname <- pkgname_as_debian(name,binary=T)
+    if (file.exists(changesfile(srcname, version))) {
+        notice('already built',srcname,'version',version)
+        return(F)
+    }
+    # XXX: what about building newer versions of Debian packages?
+    if (debname %in% debian_pkgs) {
+        notice(srcname,' exists in Debian (perhaps a different version)')
+        return(F)
+    }
+
+    rm(debname,srcname)
+    return(T)
+}
+
 build_debian <- function(pkg) {
     wd <- getwd()
     setwd(pkg$path)
@@ -92,7 +116,7 @@ build_debian <- function(pkg) {
     if (version_revision(pkg$debversion) > 2) {
         cmd = paste(cmd,'--debbuildopts','-sd')
     }
-    ret = system(cmd)
+    ret = log_system(cmd)
     setwd(wd)
     if (ret != 0) {
         fail('Failed to build package.')
