@@ -74,7 +74,7 @@ db_stop <- function(con,bump=F) {
 }
 
 db_quote <- function(text) {
-    return(paste('"',gsub('([^][[:alnum:][:space:]*?.,()<>;:/=+%-])','\\\\\\1',text),'"',sep=''))
+    return(paste('\'', gsub('([\'"])','\\1\\1',text),'\'',sep=''))
 }
 
 db_now <- function() {
@@ -94,6 +94,13 @@ db_base_epoch <- function(con) {
 db_get_base_epoch <- function() {
     con <- db_start()
     v <- db_base_epoch(con)
+    db_stop(con)
+    return(v)
+}
+
+db_get_version <- function() {
+    con <- db_start()
+    v <- db_cur_version(con)
     db_stop(con)
     return(v)
 }
@@ -118,7 +125,7 @@ db_sysreq_override <- function(sysreq_text) {
                             ,db_quote(tolower(sysreq_text)),'LIKE r_pattern'))
     db_stop(con)
     if (length(results) == 0) {
-        return(NA)
+        return(NULL)
     }
     return(results$depend_alias)
 }
@@ -276,7 +283,7 @@ db_update_package_versions <- function() {
 
 db_record_build <- function(package, deb_version, log, success=F) {
     con <- db_start()
-    dbGetQuery(con,paste('INSERT INTO builds'
+    dbGetQuery(con,paste('INSERT OR REPLACE INTO builds'
                         ,'(package,r_version,deb_epoch,deb_revision,db_version,success,log)'
                         ,'VALUES'
                         ,'(',db_quote(package)
@@ -298,21 +305,25 @@ db_latest_build <- function(pkgname) {
                        ,'WHERE id = max_id'
                        ,'AND builds.package =',db_quote(pkgname)))
     db_stop(con)
+    if (length(build) == 0) {
+        return(NULL)
+    }
+    build$success <- as.logical(build$success)
     return(build)
 }
 
 db_latest_build_version <- function(pkgname) {
     build <- db_latest_build(pkgname)
-    if (length(build) == 0) {
-        return(NA)
+    if (is.null(build)) {
+        return(NULL)
     }
     return(version_new(build$r_version, build$deb_revision, build$deb_epoch))
 }
 
 db_latest_build_status <- function(pkgname) {
     build <- db_latest_build(pkgname)
-    if (length(build) == 0) {
-        return(NA)
+    if (is.null(build)) {
+        return(NULL)
     }
     return(c(build$success,build$log))
 }
