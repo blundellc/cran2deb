@@ -8,6 +8,7 @@ alias gmp libgmp3-dev
 alias gsl libgsl0-dev
 alias_build ignore build-essential
 alias_build java openjdk-6-jdk
+alias_build java libgcj9-dev
 alias_run java openjdk-6-jre
 alias libatk libatk1.0-dev
 alias libcairo libcairo2-dev
