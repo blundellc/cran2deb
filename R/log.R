@@ -41,7 +41,9 @@ log_system <- function(...) {
         tmp <- tempfile('log_system')
         on.exit(unlink(tmp))
         cmd <- paste(...)
-        cmd <- paste(cmd,'2>&1','| tee',tmp)
+        # unfortunately this destroys ret
+        #cmd <- paste(cmd,'2>&1','| tee',tmp)
+        cmd <- paste(cmd,'>',tmp,'2>&1')
         ret <- system(cmd)
         f <- file(tmp)
         output <- readLines(f)

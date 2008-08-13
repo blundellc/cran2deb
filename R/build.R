@@ -1,5 +1,9 @@
 
 build <- function(name,extra_deps,force=F) {
+    # can't, and hence don't need to, build base packages
+    if (name %in% base_pkgs) {
+        return(T)
+    }
     log_clear()
     dir <- setup()
     version <- new_build_version(name)
