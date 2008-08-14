@@ -87,7 +87,8 @@ needs_build <- function(name,version) {
     if (!is.null(build) && build$success) {
         # then something must have changed for us to attempt this
         # build
-        if (db_latest_build_version(name) == version &&
+        if (build$r_version == version_upstream(version) &&
+            build$deb_epoch == version_epoch(version) &&
             build$db_version == db_get_version()) {
             return(F)
         }

@@ -118,14 +118,15 @@ generate_control <- function(pkg) {
     }
     control[2,'Depends'] = paste(pkg$depends$bin,collapse=', ')
 
-    # bundles provide virtual packages of their contents
-    if (pkg$is_bundle) {
-        control[2,'Provides'] = paste(
-                    lapply(r_bundle_contains(pkg$name)
-                          ,function(name) return(pkgname_as_debian(paste(name)
-                                                                  ,repopref=pkg$repo)))
-                          ,collapse=', ')
-    }
+#   # bundles provide virtual packages of their contents
+#   # unnecessary for now; cran2deb converts R bundles itself
+#    if (pkg$is_bundle) {
+#        control[2,'Provides'] = paste(
+#                    lapply(r_bundle_contains(pkg$name)
+#                          ,function(name) return(pkgname_as_debian(paste(name)
+#                                                                  ,repopref=pkg$repo)))
+#                          ,collapse=', ')
+#    }
 
     # generate the description
     descr = 'GNU R package "'
@@ -150,6 +151,5 @@ generate_control <- function(pkg) {
 
     # Debian policy says 72 char width; indent minimally
     write.dcf(control,file=pkg$debfile('control.in'),indent=1,width=72)
-    write.dcf(control,indent=1,width=72)
 }
 
