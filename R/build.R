@@ -6,7 +6,11 @@ build <- function(name,extra_deps,force=F) {
     }
     log_clear()
     dir <- setup()
-    version <- new_build_version(name)
+    version <- try(new_build_version(name))
+    if (inherits(version,'try-error')) {
+        error('failed to build',name)
+        return(NA)
+    }
     result <- try((function() {
         if (!force && !needs_build(name,version)) {
             notice('skipping build of',name)

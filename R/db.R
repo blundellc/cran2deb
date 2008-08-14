@@ -325,7 +325,7 @@ db_latest_build_status <- function(pkgname) {
     if (is.null(build)) {
         return(NULL)
     }
-    return(c(build$success,build$log))
+    return(list(build$success,build$log))
 }
 
 db_outdated_packages <- function() {
