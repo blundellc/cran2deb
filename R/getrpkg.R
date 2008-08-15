@@ -27,7 +27,18 @@ prepare_pkg <- function(dir, pkgname) {
         }
         pkgname <- bundle
     }
-    archive <- download.packages(pkgname, dir, available=available, repos='', type="source")[1,2]
+    # use this instead of download.packages as it is more resilient to
+    # dodgy network connections (hello BT 'OpenWorld', bad ISP)
+    fn <- paste(pkgname, '_', available[pkgname,'Version'], '.tar.gz', sep='')
+    url <- paste(available[pkgname,'Repository'], fn, sep='/')
+    archive <- file.path(dir, fn)
+    # don't log the output -- we don't care!
+    ret <- system(paste('curl','-o',shQuote(archive),'-m 60 --retry 5',shQuote(url)))
+    if (ret != 0) {
+        fail('failed to download',url)
+    }
+    # end of download.packages replacement
+#    archive <- download.packages(pkgname, dir, available=available, repos='', type="source")[1,2]
     if (length(grep('\\.\\.',archive)) || normalizePath(archive) != archive) {
         fail('funny looking path',archive)
     }
