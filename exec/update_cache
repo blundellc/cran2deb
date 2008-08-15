@@ -11,15 +11,10 @@ mirror <- 'http://cran.r-project.org/'
 message('updating list of available R packages...')
 available <- available.packages(contrib.url(mirror))
 
-available_more <- available.packages(contrib.url('http://www.bioconductor.org/'))
-matches <- match(rownames(available_more),rownames(available))
-matches <- matches[!is.na(matches)]
-if (length(matches) > 0) {
-    message(paste(length(matches),'packages shared between repositories -- siding with CRAN'))
-    available <- rbind(available, available_more[-matches,])
-} else {
-    available <- rbind(available, available_more)
-}
+available <- rbind(available,available.packages(contrib.url('http://www.bioconductor.org/')))
+# prefer CRAN
+dupes <- duplicated(rownames(available), fromLast=T)
+available <- available[!dupes,]
 
 message('updating list of available R task views...')
 ctv.available <- available.views(repo=mirror)
