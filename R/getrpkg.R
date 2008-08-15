@@ -33,7 +33,7 @@ prepare_pkg <- function(dir, pkgname) {
     url <- paste(available[pkgname,'Repository'], fn, sep='/')
     archive <- file.path(dir, fn)
     # don't log the output -- we don't care!
-    ret <- system(paste('curl','-o',shQuote(archive),'-m 60 --retry 5',shQuote(url)))
+    ret <- system(paste('curl','-o',shQuote(archive),'-m 720 --retry 5',shQuote(url)))
     if (ret != 0) {
         fail('failed to download',url)
     }
