@@ -24,3 +24,24 @@ Let ROOT be the value returned by running: cran2deb root
 6. Try building a simple package: cran2deb build zoo
    (The result will be in /var/cache/cran2deb/results)
 
+
+
+Useful commands:
+cran2deb build <foo>
+
+cran2deb autobuild
+ - tries to build everything in the database that is out of date or failed on last build.
+
+cran2deb license
+ - license console for adding new licenses. see ROOT/data/populate_licenses for examples
+
+cran2deb depend
+ - dependency console for adding more dependencies, forced dependencies, system requirement patterns, and aliases.
+    see ROOT/data/populate_depend_aliases
+                  populate_forcedep
+                  populate_sysreq
+
+cran2deb update
+ - update the various caches and databases from the latest cran2deb static data, CRAN/BioC repos, and Debian
+ repos (for the pbuilder chroot)
+
