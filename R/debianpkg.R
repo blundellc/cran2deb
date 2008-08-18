@@ -75,47 +75,7 @@ generate_copyright <- function(pkg) {
 
 prepare_new_debian <- function(pkg,extra_deps) {
     # generate Debian version and name
-    pkg$date_stamp = format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z')
-    pkg$repo = repourl_as_debian(pkg$repoURL)
-    if (pkg$version != available[pkg$name,'Version']) {
-        # should never happen since available is the basis upon which the
-        # package is retrieved.
-        error('available version:',available[pkg$name,'Version'])
-        error('package version:',pkg$version)
-        fail('inconsistency between R package version and cached R version')
-    }
     pkg$debversion = new_build_version(pkg$name)
-    if (!length(grep('^[A-Za-z0-9][A-Za-z0-9+.-]+$',pkg$name))) {
-        fail('Cannot convert package name into a Debian name',pkg$name)
-    }
-    pkg$srcname = tolower(pkg$name)
-    pkg$debname = pkgname_as_debian(pkg$name,repo=pkg$repo)
-
-    if (!length(grep('\\.tar\\.gz',pkg$archive))) {
-        fail('archive is not tarball')
-    }
-
-    # re-pack into a Debian-named archive with a Debian-named directory.
-    debpath = file.path(dirname(pkg$archive)
-                   ,paste(pkg$srcname,'-'
-                         ,pkg$version
-                         ,sep=''))
-    file.rename(pkg$path, debpath)
-    pkg$path = debpath
-    debarchive = file.path(dirname(pkg$archive)
-                          ,paste(pkg$srcname,'_'
-                                ,pkg$version,'.orig.tar.gz'
-                                ,sep=''))
-    wd <- getwd()
-    setwd(dirname(pkg$path))
-    # remove them pesky +x files
-    log_system('find',shQuote(basename(pkg$path))
-                ,'-type f -exec chmod -x {} \\;')
-    # tar it all back up
-    log_system('tar -czf',shQuote(debarchive),shQuote(basename(pkg$path)))
-    setwd(wd)
-    file.remove(pkg$archive)
-    pkg$archive = debarchive
 
     # make the debian/ directory
     debdir <- file.path(pkg$path,'debian')
@@ -153,8 +113,6 @@ prepare_new_debian <- function(pkg,extra_deps) {
     generate_rules(pkg)
     generate_copyright(pkg)
     generate_control(pkg)
-
-    # TODO: debian/watch from pkg$repoURL
 
     # convert text to utf8 (who knows what the original character set is --
     # let's hope iconv DTRT).
