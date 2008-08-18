@@ -10,7 +10,7 @@
     global("dinstall_archive", file.path(root,'var/archive'))
     global("r_depend_fields", c('Depends','Imports')) # Suggests, Enhances
     # git_revision {
-    global("git_revision","3278eadbf43c0c5a8a46f2298a38860c34f07ba4")
+    global("git_revision","b79d88001537df06dac28c27be3d4887ca2d9238")
     # git_revision }
     global("changesfile", function(srcname,version='*') {
         return(file.path(pbuilder_results

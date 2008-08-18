@@ -35,6 +35,9 @@ get_dependencies <- function(pkg,extra_deps) {
     # also include stuff to allow tcltk to build (suggested by Dirk)
     depends$build = c(depends$build,'xvfb','xauth','xfonts-base')
 
+    # make all bin dependencies build dependencies.
+    depends$build = c(depends$build, depends$bin)
+
     # remove duplicates
     depends <- lapply(depends,unique)
 
