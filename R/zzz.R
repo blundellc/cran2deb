@@ -9,6 +9,9 @@
     global("dinstall_config", file.path(root,'etc/mini-dinstall.conf'))
     global("dinstall_archive", file.path(root,'var/archive'))
     global("r_depend_fields", c('Depends','Imports')) # Suggests, Enhances
+    # git_revision {
+    global("git_revision","bc0b57d181288d67ce7829455c9e11fcfc9faa1a")
+    # git_revision }
     global("changesfile", function(srcname,version='*') {
         return(file.path(pbuilder_results
                         ,paste(srcname,'_',version,'_'

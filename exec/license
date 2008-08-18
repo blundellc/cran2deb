@@ -33,7 +33,7 @@ exec_cmd <- function(argc, argv) {
         }
         license = argv[2]
         path = argv[3]
-        if (is.na(db_license_override_name(license))) {
+        if (is.null(db_license_override_name(license))) {
             error('license',license,'is not known; add it first')
             return()
         }
@@ -55,7 +55,7 @@ exec_cmd <- function(argc, argv) {
         license <- argv[2]
         pkg_name <- argv[3]
         current_action <- db_license_override_name(license)
-        if (is.na(current_action)) {
+        if (is.null(current_action)) {
             notice('license',license,'is not known; add it')
             return()
         }

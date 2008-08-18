@@ -8,7 +8,7 @@ r_bundle_of <- function(pkgname) {
             return(bundle)
         }
     }
-    return(NA)
+    return(NULL)
 }
 
 r_bundle_contains <- function(bundlename) {
@@ -19,7 +19,7 @@ r_requiring <- function(names) {
     for (name in names) {
         if (!(name %in% base_pkgs) && !(name %in% rownames(available))) {
             bundle <- r_bundle_of(name)
-            if (!is.na(bundle)) {
+            if (!is.null(bundle)) {
                 name = bundle
                 names <- c(names,bundle)
             }
@@ -68,7 +68,7 @@ r_dependencies_of <- function(name=NULL,description=NULL) {
     if (is.null(description)) {
         if (!(name %in% rownames(available))) {
             bundle <- r_bundle_of(name)
-            if (!is.na(bundle)) {
+            if (!is.null(bundle)) {
                 name <- bundle
             } else {
                 # unavailable packages don't depend upon anything
@@ -115,7 +115,7 @@ r_parse_dep_field <- function(dep) {
     dep = sub(pat,'\\1',dep)
     if (!(dep %in% rownames(available))) {
         depb <- r_bundle_of(dep)
-        if (!is.na(depb)) {
+        if (!is.null(depb)) {
             dep <- depb
         }
     }

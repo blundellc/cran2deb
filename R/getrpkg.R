@@ -22,7 +22,7 @@ prepare_pkg <- function(dir, pkgname) {
     # first a little trick; change pkgname if pkgname is contained in a bundle
     if (!(pkgname %in% rownames(available))) {
         bundle <- r_bundle_of(pkgname)
-        if (is.na(bundle)) {
+        if (is.null(bundle)) {
             fail('package',pkgname,'is unavailable')
         }
         pkgname <- bundle

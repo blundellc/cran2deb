@@ -58,7 +58,7 @@ log_system <- function(...) {
         if (!length(grep('^[WENI]:',line))) {
             line = paste('I:',line)
         }
-        log_add(line,print=F)
+        log_add(line) #,print=F)
     }
     return(r[[1]])
 }

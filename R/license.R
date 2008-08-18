@@ -7,18 +7,18 @@ is_acceptable_license <- function(license) {
     }
     license <- license_text_reduce(license)
     action = db_license_override_name(license)
-    if (!is.na(action)) {
+    if (!is.null(action)) {
         return(action)
     }
     license <- license_text_further_reduce(license)
     action = db_license_override_name(license)
-    if (!is.na(action)) {
+    if (!is.null(action)) {
         warn('Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!')
         return(action)
     }
     license <- license_text_extreme_reduce(license)
     action = db_license_override_name(license)
-    if (!is.na(action)) {
+    if (!is.null(action)) {
         warn('Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!')
         return(action)
     }
@@ -102,11 +102,11 @@ get_license_hash <- function(pkg,license) {
 
 is_acceptable_hash_license <- function(pkg,license) {
     license_sha1 <- get_license_hash(pkg,license)
-    if (is.na(license_sha1)) {
+    if (is.null(license_sha1)) {
         return(FALSE)
     }
     action = db_license_override_hash(license_sha1)
-    if (is.na(action)) {
+    if (is.null(action)) {
         action = FALSE
     }
     if (action) {

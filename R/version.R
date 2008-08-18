@@ -76,7 +76,7 @@ version_update <- function(rver, prev_pkgver, prev_success) {
 new_build_version <- function(pkgname) {
     if (!(pkgname %in% rownames(available))) {
         bundle <- r_bundle_of(pkgname)
-        if (is.na(bundle)) {
+        if (is.null(bundle)) {
             fail('tried to discover new version of',pkgname,'but it does not appear to be available')
         }
         name <- bundle

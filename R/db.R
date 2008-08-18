@@ -58,6 +58,8 @@ db_start <- function() {
                   ,',deb_epoch INTEGER NOT NULL'
                   ,',deb_revision INTEGER NOT NULL'
                   ,',db_version INTEGER NOT NULL'
+                  ,',date_stamp TEXT NOT NULL'
+                  ,',git_revision TEXT NOT NULL'
                   ,',success INTEGER NOT NULL'
                   ,',log TEXT'
                   ,',UNIQUE(package,r_version,deb_epoch,deb_revision,db_version)'
@@ -213,7 +215,7 @@ db_license_override_name <- function(name) {
                             ,db_quote(tolower(name)),'= name'))
     db_stop(con)
     if (length(results) == 0) {
-        return(NA)
+        return(NULL)
     }
     return(as.logical(results$accept))
 }
@@ -242,7 +244,7 @@ db_license_override_hash <- function(license_sha1) {
                     ,db_quote(tolower(license_sha1)),'= license_hashes.sha1'))
     db_stop(con)
     if (length(results) == 0) {
-        return(NA)
+        return(NULL)
     }
     return(as.logical(results$accept))
 }
@@ -256,7 +258,7 @@ db_license_overrides <- function() {
 }
 
 db_add_license_hash <- function(name,license_sha1) {
-    if (is.na(db_license_override_name(name))) {
+    if (is.null(db_license_override_name(name))) {
         fail('license',name,'is not know, yet trying to add a hash for it?')
     }
     notice('adding hash',license_sha1,'for',name)
@@ -284,7 +286,7 @@ db_update_package_versions <- function() {
 db_record_build <- function(package, deb_version, log, success=F) {
     con <- db_start()
     dbGetQuery(con,paste('INSERT OR REPLACE INTO builds'
-                        ,'(package,r_version,deb_epoch,deb_revision,db_version,success,log)'
+                        ,'(package,r_version,deb_epoch,deb_revision,db_version,success,date_stamp,git_revision,log)'
                         ,'VALUES'
                         ,'(',db_quote(package)
                         ,',',db_quote(version_upstream(deb_version))
@@ -292,9 +294,25 @@ db_record_build <- function(package, deb_version, log, success=F) {
                         ,',',db_quote(version_revision(deb_version))
                         ,',',db_cur_version(con)
                         ,',',as.integer(success)
+                        ,',',db_quote(format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z'))
+                        ,',',db_quote(git_revision)
                         ,',',db_quote(paste(log, collapse='\n'))
                         ,')'))
     db_stop(con)
+}
+
+db_builds <- function(pkgname) {
+    # returns all successful builds
+    con <- db_start()
+    build <- dbGetQuery(con, paste('SELECT * FROM builds'
+                       ,'WHERE success = 1'
+                       ,'AND package =',db_quote(pkgname)))
+    db_stop(con)
+    if (length(build) == 0) {
+        return(NULL)
+    }
+    build$success <- as.logical(build$success)
+    return(build)
 }
 
 db_latest_build <- function(pkgname) {

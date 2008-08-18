@@ -30,7 +30,7 @@ pkgname_as_debian <- function(name,repopref=NULL,version=NULL,binary=T,build=F) 
         #      now.
         if (!(name %in% rownames(available))) {
             bundle <- r_bundle_of(name)
-            if (!is.na(bundle)) {
+            if (!is.null(bundle)) {
                 name <- bundle
             }
         }

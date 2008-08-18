@@ -73,7 +73,7 @@ sysreqs_as_debian <- function(sysreq_text) {
         # squish out space
         sysreq = chomp(gsub('[[:space:]]+',' ',sysreq))
         alias <- db_sysreq_override(sysreq)
-        if (is.na(alias)) {
+        if (is.null(alias)) {
             error('do not know what to do with SystemRequirement:',sysreq)
             error('original SystemRequirement:',startreq)
             fail('unmet system requirement')

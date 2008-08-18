@@ -1,11 +1,33 @@
+append_build_from_pkg <- function(pkg, builds) {
+    pkg_build <- data.frame(id = -1     # never used
+                           ,package = pkg$name
+                           ,r_version = version_upstream(pkg$debversion)
+                           ,deb_epoch = version_epoch(pkg$debversion)
+                           ,deb_revision = version_revision(pkg$debversion)
+                           ,db_version = db_get_version()
+                           ,date_stamp = pkg$date_stamp
+                           ,git_revision = git_revision
+                           ,success = 1 # never used
+                           ,log = ''    # never used
+                           )
+    return(cbind(data.frame(srcname=pkg$srcname), rbind(builds, pkg_build)))
+}
+
 generate_changelog <- function(pkg) {
-    # construct a dummy changelog
     # TODO: ``Writing R extensions'' mentions that a package may also have
     # {NEWS,ChangeLog} files.
-    cat(paste(paste(pkg$srcname,' (',pkg$debversion,') unstable; urgency=low',sep='')
-             ,'' ,'  * Initial release.',''
-             ,paste(' --',maintainer,'',format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z'))
-             ,'',sep='\n'),file=pkg$debfile('changelog.in'))
+    builds <- append_build_from_pkg(pkg, db_builds(pkg$name))
+    sapply(rev(rownames(builds)), function(b, changelog) generate_changelog_entry(builds[b,], changelog), pkg$debfile('changelog.in'))
+}
+
+generate_changelog_entry <- function(build, changelog) {
+    # TODO: should say 'New upstream release' when necessary
+    debversion <- version_new(build$r_version, build$deb_revision, build$deb_epoch)
+    cat(paste(paste(build$srcname,' (',debversion,') unstable; urgency=low',sep='')
+             ,'' ,paste('  * cran2deb ',build$git_revision
+                       ,' with DB version ',as.integer(build$db_version),'.',sep='')
+             ,'',paste(' --',maintainer,'',build$date_stamp)
+             ,'','','',sep='\n'),file=changelog, append=TRUE)
 }
 
 generate_rules <- function(pkg) {
@@ -37,8 +59,8 @@ generate_copyright <- function(pkg) {
              ,''
              ,''
              ,'The GNU R package DESCRIPTION offers a'
-             ,'Copyright licenses under the terms of the',pkg$license
-             ,'license.  On a Debian GNU/Linux system, common'
+             ,'Copyright licenses under the terms of the license:'
+             ,pkg$license,'.  On a Debian GNU/Linux system, common'
              ,'licenses are included in the directory'
              ,'/usr/share/common-licenses/.'
              ,''
@@ -53,6 +75,7 @@ generate_copyright <- function(pkg) {
 
 prepare_new_debian <- function(pkg,extra_deps) {
     # generate Debian version and name
+    pkg$date_stamp = format(Sys.time(),'%a, %d %b %Y %H:%M:%S %z')
     pkg$repo = repourl_as_debian(pkg$repoURL)
     if (pkg$version != available[pkg$name,'Version']) {
         # should never happen since available is the basis upon which the

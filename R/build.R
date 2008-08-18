@@ -9,12 +9,12 @@ build <- function(name,extra_deps,force=F) {
     version <- try(new_build_version(name))
     if (inherits(version,'try-error')) {
         error('failed to build',name)
-        return(NA)
+        return(NULL)
     }
     result <- try((function() {
         if (!force && !needs_build(name,version)) {
             notice('skipping build of',name)
-            return(NA)
+            return(NULL)
         }
 
         pkg <- prepare_new_debian(prepare_pkg(dir,name),extra_deps)
@@ -67,7 +67,7 @@ build <- function(name,extra_deps,force=F) {
         return(pkg$debversion)
     })())
     cleanup(dir)
-    if (is.na(result)) {
+    if (is.null(result)) {
         # nothing was done so escape asap.
         return(result)
     }
@@ -124,6 +124,7 @@ build_debian <- function(pkg) {
     cmd = paste('pdebuild --configfile',shQuote(pbuilder_config))
     if (version_revision(pkg$debversion) > 2) {
         cmd = paste(cmd,'--debbuildopts','-sd')
+        notice('build should exclude original source')
     }
     ret = log_system(cmd)
     setwd(wd)
