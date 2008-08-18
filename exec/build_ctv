@@ -1,4 +1,7 @@
 #!/usr/bin/env rc
+## DOC: cran2deb build_ctv
+## DOC:     build all CRAN TaskViews. warning and error logs in ./ctv/
+## DOC:
 
 for (ctv in `{cran2deb cran_pkgs query}) {
     echo task view $ctv...

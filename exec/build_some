@@ -1,4 +1,10 @@
 #!/usr/bin/rc
+## DOC: cran2deb build_some [taskview1 taskview2 ...]
+## DOC:     build some packages, logging warnings into ./warn/$package
+## DOC:     and failures into ./fail/$package. with no arguments a random
+## DOC:     sample of packages is built.  the file ./all_pkgs overrides this
+## DOC:     behaviour and is expected to be a list of packages to build.
+## DOC:
 
 mkdir -p warn fail
 shift

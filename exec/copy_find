@@ -1,4 +1,7 @@
 #!/usr/bin/rc
+## DOC: cran2deb copy_find path
+## DOC:     a tool for finding (heuristically) some copyright notices.
+## DOC:
 kwords='copyright|warranty|redistribution|modification|patent|trademark|licen[cs]e|permission'
 nl=`` () {printf '\n'}
 ifs=$nl {

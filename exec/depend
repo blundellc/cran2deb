@@ -1,4 +1,7 @@
 #!/usr/bin/env r
+## DOC: cran2deb depend
+## DOC:     add dependency aliases, system requirements and forced dependencies
+## DOC:
 
 suppressPackageStartupMessages(library(cran2deb))
 suppressPackageStartupMessages(library(digest))

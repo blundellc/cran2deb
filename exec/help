@@ -1,6 +1,6 @@
 #!/usr/bin/rc
 echo usage: cran2deb '<cmd> [args ...]'
 echo where '<cmd>' is one of
-ls $1/exec
+grep '## [D]OC:' $1/exec/* | sed -e 's/.*[D]OC://'
 echo
 echo installation root is: $1

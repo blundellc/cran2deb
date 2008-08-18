@@ -1,4 +1,7 @@
 #!/usr/bin/env r
+## DOC: cran2deb license
+## DOC:     add licenses and change acceptance/rejection of licenses
+## DOC:
 
 suppressPackageStartupMessages(library(cran2deb))
 suppressPackageStartupMessages(library(digest))
