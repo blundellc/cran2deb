@@ -6,11 +6,14 @@ build <- function(name,extra_deps,force=F) {
     }
     log_clear()
     dir <- setup()
+
+    # obtain the Debian version-to-be
     version <- try(new_build_version(name))
     if (inherits(version,'try-error')) {
         error('failed to build',name)
         return(NULL)
     }
+
     result <- try((function() {
         if (!force && !needs_build(name,version)) {
             notice('skipping build of',name)
@@ -71,6 +74,7 @@ build <- function(name,extra_deps,force=F) {
         # nothing was done so escape asap.
         return(result)
     }
+
     # otherwise record progress
     failed = inherits(result,'try-error')
     if (failed) {
@@ -103,6 +107,7 @@ needs_build <- function(name,version) {
         notice('already built',srcname,'version',version)
         return(F)
     }
+
     # XXX: what about building newer versions of Debian packages?
     if (debname %in% debian_pkgs) {
         notice(srcname,' exists in Debian (perhaps a different version)')

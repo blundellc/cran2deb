@@ -38,6 +38,6 @@ if (exists('argv')) { # check for littler
     build_order <- r_dependency_closure(c(extra_deps$r,argv))
     notice('build order',paste(build_order,collapse=', '))
     for (pkg in build_order) {
-        build(pkg,extra_deps)
+        build(pkg,extra_deps,force=pkg %in% argv)
     }
 }
