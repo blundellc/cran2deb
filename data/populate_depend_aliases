@@ -1,6 +1,6 @@
 alias_build boost libboost-dev
 alias_build boost libboost-graph-dev
-alias ggobi ggobbi
+alias ggobi ggobi
 alias glade libglade2-dev
 alias glib libglib2.0-dev
 alias glu libglu1-mesa-dev
@@ -30,9 +30,10 @@ alias msttcorefonts msttcorefonts
 alias_run netcdf libnetcdf4
 alias_build netcdf libnetcdf-dev
 alias opengl libgl1-mesa-dev
-alias pari-gp pari/gp
+alias pari-gp pari-gp
 alias proj proj
 alias quantlib libquantlib0-dev
 alias_run sqlite libsqlite3-0
 alias_build sqlite libsqlite3-dev
 alias zlib zlib1g-dev
+alias cshell tsch|csh|c-shell

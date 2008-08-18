@@ -3,3 +3,4 @@ force sqlite RSQLite
 force sqlite SQLiteDF
 force boost RBGL
 force netcdf ncdf
+force cshell dse

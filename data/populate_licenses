@@ -80,6 +80,7 @@ pkg GPL moc
 ls
 pkg GPL ibdreg
 pkg AGPL accuracy
+pkg AGPL Zelig
 pkg GPL TWIX
 pkg GPL aplpack
 accept distrib-noncomm
