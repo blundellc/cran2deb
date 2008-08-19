@@ -49,5 +49,5 @@ alias_run quantlib libquantlib-0.9.6
 alias_run sqlite libsqlite3-0
 alias_build sqlite libsqlite3-dev
 alias zlib zlib1g-dev
-alias cshell tsch|csh|c-shell
+alias cshell tcsh|csh|c-shell
 alias_build autotools autotools-dev
