@@ -13,10 +13,6 @@ for (x in `{find /etc/cran2deb -type f -name '*.in'}) {
     sed -e 's:@ROOT@:'^$root^':g' <$x >$y
 }
 mkdir -p /var/cache/cran2deb/results || exit 1
-if ([ ! -e $root/var/archive ]) {
-    # I symbolically link this into /var/www/
-    mkdir $root/var/archive || exit 1
-}
 mini-dinstall --batch -c /etc/cran2deb/mini-dinstall.conf || exit 1
 update_period=10800
 if (~ $1 full || ![ -e /var/cache/cran2deb/cache.rda ] ) {
