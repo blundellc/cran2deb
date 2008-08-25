@@ -4,9 +4,9 @@
     global("root", system.file(package='cran2deb'))
     global("cache_root", '/var/cache/cran2deb')
     global("pbuilder_results", '/var/cache/cran2deb/results')
-    global("pbuilder_config", file.path(root,'etc/pbuilderrc'))
-    global("dput_config", file.path(root,'etc/dput.cf'))
-    global("dinstall_config", file.path(root,'etc/mini-dinstall.conf'))
+    global("pbuilder_config", '/etc/cran2deb/pbuilderrc'))
+    global("dput_config", '/etc/cran2deb/dput.cf'))
+    global("dinstall_config", '/etc/cran2deb/mini-dinstall.conf'))
     global("dinstall_archive", file.path(root,'var/archive'))
     global("r_depend_fields", c('Depends','Imports')) # Suggests, Enhances
     # git_revision {

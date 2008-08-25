@@ -17,7 +17,9 @@ Let ROOT be the value returned by running: cran2deb root
 2. ROOT/var/archive should be a symlink pointing to /var/www/cran2deb/
     $ rm ROOT/var/archive
     $ ln -s /var/www/cran2deb/ ROOT/var/archive
-3. modify OTHERMIRROR of ROOT/etc/pbuilderrc.in to point to your webserver
+3. create /etc/cran2deb
+   a. copy ROOT/etc/* into /etc/cran2deb
+   b. modify OTHERMIRROR of /etc/cran2deb/pbuilderrc.in to point to your webserver
 4. cran2deb needs a persistent cache outside of R's control. therefore, create
     /var/cache/cran2deb, writable by whichever user(s) will run cran2deb.
 5. run: cran2deb update

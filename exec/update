@@ -8,7 +8,7 @@
 umask 022
 root=$1
 shift
-for (x in `{find $root/etc -type f -name '*.in'}) {
+for (x in `{find /etc/cran2deb -type f -name '*.in'}) {
     y=`{echo $x | sed -e 's,.in$,,'}
     sed -e 's:@ROOT@:'^$root^':g' <$x >$y
 }
@@ -17,7 +17,7 @@ if ([ ! -e $root/var/archive ]) {
     # I symbolically link this into /var/www/
     mkdir $root/var/archive || exit 1
 }
-mini-dinstall --batch -c $root/etc/mini-dinstall.conf || exit 1
+mini-dinstall --batch -c /etc/cran2deb/mini-dinstall.conf || exit 1
 update_period=10800
 if (~ $1 full || ![ -e /var/cache/cran2deb/cache.rda ] ) {
     delta=`{awk 'END{print '^$update_period^'+1}' </dev/null}
@@ -31,7 +31,7 @@ if (![ -e /var/cache/cran2deb/cache.rda ] || [ $delta -gt $update_period ]) {
     if ([ -e /var/cache/pbuilder/base-cran2deb.tgz ]) {
         mode=update
     }
-    sudo pbuilder $mode --override-config --configfile $root/etc/pbuilderrc
+    sudo pbuilder $mode --override-config --configfile /etc/cran2deb/pbuilderrc
     $root/exec/update_cache $root
 }
 if (![ -e /var/cache/cran2deb/cran2deb.db ] || [ $delta -gt $update_period ]) {

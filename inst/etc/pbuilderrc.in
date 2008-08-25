@@ -1,5 +1,5 @@
 BASETGZ=/var/cache/pbuilder/base-cran2deb.tgz
-HOOKDIR=@ROOT@/etc/hook
+HOOKDIR=/etc/cran2deb/hook
 BUILDRESULT=/var/cache/cran2deb/results
 EXTRAPACKAGES='debhelper r-base-dev cdbs r-base-core lintian xvfb xauth xfonts-base'
 REMOVEPACKAGES='lilo libldap-2.4-2 libopencdk10 libsasl2-2'
