@@ -40,17 +40,32 @@ download_pkg <- function(dir, pkgname) {
         file.copy(debfn,pkg$archive)
         pkg$path = file.path(dir, paste(pkg$srcname ,pkg$version ,sep='-'))
     } else {
-        # use this instead of download.packages as it is more resilient to
-        # dodgy network connections (hello BT 'OpenWorld', bad ISP)
-        fn <- paste(pkgname, '_', pkg$version, '.tar.gz', sep='')
-        url <- paste(available[pkgname,'Repository'], fn, sep='/')
-        archive <- file.path(dir, fn)
-        # don't log the output -- we don't care!
-        ret <- system(paste('curl','-o',shQuote(archive),'-m 720 --retry 5',shQuote(url)))
-        if (ret != 0) {
-            fail('failed to download',url)
+        # see if we have a local mirror in /srv/R
+        use_local = FALSE
+        if (pkg$repo == 'cran') {
+            localfn = file.path('/srv/R/Repositories/CRAN/src/contrib',paste(pkg$name,'_',pkg$version,'.tar.gz',sep=''))
+            use_local = file.exists(localfn)
+        } else if (pkg$repo == 'bioc') {
+            localfn = file.path('/srv/R/Repositories/Bioconductor/release/bioc/src/contrib',paste(pkg$name,'_',pkg$version,'.tar.gz',sep=''))
+            use_local = file.exists(localfn)
         }
-        # end of download.packages replacement
+
+        fn <- paste(pkgname, '_', pkg$version, '.tar.gz', sep='')
+        archive <- file.path(dir, fn)
+
+        if (use_local) {
+            file.copy(localfn, archive)
+        } else {
+            # use this instead of download.packages as it is more resilient to
+            # dodgy network connections (hello BT 'OpenWorld', bad ISP)
+            url <- paste(available[pkgname,'Repository'], fn, sep='/')
+            # don't log the output -- we don't care!
+            ret <- system(paste('curl','-o',shQuote(archive),'-m 720 --retry 5',shQuote(url)))
+            if (ret != 0) {
+                fail('failed to download',url)
+            }
+            # end of download.packages replacement
+        }
 
         if (length(grep('\\.\\.',archive)) || normalizePath(archive) != archive) {
             fail('funny looking path',archive)
