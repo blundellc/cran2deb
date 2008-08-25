@@ -4,13 +4,13 @@
     global("root", system.file(package='cran2deb'))
     global("cache_root", '/var/cache/cran2deb')
     global("pbuilder_results", '/var/cache/cran2deb/results')
-    global("pbuilder_config", '/etc/cran2deb/pbuilderrc'))
-    global("dput_config", '/etc/cran2deb/dput.cf'))
-    global("dinstall_config", '/etc/cran2deb/mini-dinstall.conf'))
+    global("pbuilder_config", '/etc/cran2deb/pbuilderrc')
+    global("dput_config", '/etc/cran2deb/dput.cf')
+    global("dinstall_config", '/etc/cran2deb/mini-dinstall.conf')
     global("dinstall_archive", file.path(root,'var/archive'))
     global("r_depend_fields", c('Depends','Imports')) # Suggests, Enhances
     # git_revision {
-    global("git_revision","b79d88001537df06dac28c27be3d4887ca2d9238")
+    global("git_revision","6dfc157087112560aaa8a14902031df266f2e896")
     # git_revision }
     global("changesfile", function(srcname,version='*') {
         return(file.path(pbuilder_results
