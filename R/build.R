@@ -67,6 +67,15 @@ build <- function(name,extra_deps,force=F) {
             fail('upload failed!')
         }
 
+        # delete the current archive (XXX: assumes mini-dinstall)
+        # this is handy for group operation
+        for (subdir in c('mini-dinstall','unstable')) {
+            path = file.path(dinstall_archive,subdir)
+            if (file.exists(path)) {
+                unlink(path,recursive=T)
+            }
+        }
+
         return(pkg$debversion)
     })())
     cleanup(dir)

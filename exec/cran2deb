@@ -1,4 +1,5 @@
 #!/usr/bin/rc
+umask 002
 root=`{r -e 'suppressMessages(library(cran2deb));cat(system.file(package=''cran2deb''),file=stdout())'}
 cmd=$1
 shift
