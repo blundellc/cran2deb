@@ -5,3 +5,4 @@ force sqlite SQLiteDF
 force boost RBGL
 force netcdf ncdf
 force cshell dse
+force libgtk cairoDevice
