@@ -42,7 +42,7 @@ build <- function(name,extra_deps,force=F) {
         }
 
         # pull in all the R dependencies
-        notice('dependencies:',paste(pkg$depends$r,collapse=', '))
+        notice('R dependencies:',paste(pkg$depends$r,collapse=', '))
         for (dep in pkg$depends$r) {
             if (pkgname_as_debian(dep) %in% debian_pkgs) {
                 notice('using Debian package of',dep)

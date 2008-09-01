@@ -8,10 +8,6 @@
 umask 022
 root=$1
 shift
-for (x in `{find /etc/cran2deb -type f -name '*.in'}) {
-    y=`{echo $x | sed -e 's,.in$,,'}
-    sed -e 's:@ROOT@:'^$root^':g' <$x >$y
-}
 mkdir -p /var/cache/cran2deb/results || exit 1
 mini-dinstall --batch -c /etc/cran2deb/mini-dinstall.conf || exit 1
 update_period=10800
@@ -29,9 +25,5 @@ if (![ -e /var/cache/cran2deb/cache.rda ] || [ $delta -gt $update_period ]) {
     }
     sudo pbuilder $mode --override-config --configfile /etc/cran2deb/pbuilderrc
     $root/exec/update_cache $root
-}
-if (![ -e /var/cache/cran2deb/cran2deb.db ] || [ $delta -gt $update_period ]) {
-    cat $root/data/^(populate_licenses quit) | $root/exec/license $root
-    cat $root/data/^(populate_depend_aliases populate_sysreq populate_forcedep quit) | $root/exec/depend $root
 }
 

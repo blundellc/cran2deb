@@ -28,3 +28,6 @@ message('updating list of existing Debian packages...')
 debian_pkgs <- readLines(pipe('apt-cache rdepends r-base-core | sed -e "/^  r-cran/{s/^[[:space:]]*r/r/;p}" -e d | sort -u'))
 
 save(debian_pkgs, base_pkgs, available, ctv.available, file=file.path(cache_root,'cache.rda'),eval.promises=T)
+
+message('synchronising database...')
+db_update_package_versions()

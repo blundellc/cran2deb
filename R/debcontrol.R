@@ -23,6 +23,8 @@ get_dependencies <- function(pkg,extra_deps) {
 
     forced <- forced_deps_as_debian(pkg$name)
     if (length(forced)) {
+        notice('forced build dependencies:',paste(forced$build, collapse=', '))
+        notice('forced binary dependencies:',paste(forced$build, collapse=', '))
         depends$bin = c(forced$bin,depends$bin)
         depends$build = c(forced$build,depends$build)
     }

@@ -1,10 +1,10 @@
-#!/usr/bin/rc
+#!/bin/sh
 umask 002
-root=`{r -e 'suppressMessages(library(cran2deb));cat(system.file(package=''cran2deb''),file=stdout())'}
+root=$(r -e 'suppressMessages(library(cran2deb));cat(system.file(package="cran2deb"),file=stdout())')
 cmd=$1
 shift
-if ([ ! -x $root/exec/$cmd ]) {
+if [ ! -x "$root/exec/$cmd" ]; then
     echo unknown command $cmd
     exit 1
-}
-$root/exec/$cmd $root $*
+fi
+"$root/exec/$cmd" "$root" $*

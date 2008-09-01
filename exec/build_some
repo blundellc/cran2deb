@@ -8,10 +8,11 @@
 
 mkdir -p warn fail
 shift
-if ([ ! -e all_pkgs ]) {
+if [ ! -e all_pkgs ]; then
     cran2deb cran_pkgs $* >all_pkgs
-}
-for (pkg in `{cat all_pkgs}) {
+fi
+
+for pkg in $(cat all_pkgs); do
     if (~ $pkg *..* */*) {
         echo bad name $pkg >>fail/ERROR
     } else if ([ -e warn/$pkg ]) {
@@ -33,4 +34,4 @@ for (pkg in `{cat all_pkgs}) {
             echo FAILED
         }
     }
-}
+done

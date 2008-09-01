@@ -1,2 +1,2 @@
-#!/usr/bin/env rc
-{for (x in ctv/*) {echo;echo;echo $x: ; cd $x && cran2deb diagnose && cd ../..}} >ctv.results
+#!/bin/sh
+(for x in ctv/*; do echo;echo;echo "$x: "; cd "$x" && cran2deb diagnose && cd ../..; done) >ctv.results
