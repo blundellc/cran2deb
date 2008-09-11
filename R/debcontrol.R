@@ -145,6 +145,13 @@ generate_control <- function(pkg) {
     } else {
         long_descr <- pkg$description[1,'Description']
     }
+
+    if (length(long_descr)) {
+        # bypass lintian extended-description-is-empty for which we care not.
+        long_descr <- paste('The author/maintainer of this package'
+                           ,'did not care to enter a longer description.')
+    }
+
     # using \n\n.\n\n is not very nice, but is necessary to make sure
     # the longer description does not begin on the synopsis line --- R's
     # write.dcf does not appear to have a nicer way of doing this.
