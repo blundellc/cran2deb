@@ -5,7 +5,7 @@
 ## DOC:     force a full update of the cran2deb cache and database
 ## DOC:
 
-umask 022
+umask 002
 root=$1
 shift
 mkdir -p /var/cache/cran2deb/results || exit 1

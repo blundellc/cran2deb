@@ -3,7 +3,7 @@
 ## DOC:     repopulate the cran2deb database and configurations from a new cran2deb release
 ## DOC:
 
-umask 022
+umask 002
 root=$1
 shift
 for x in $(find /etc/cran2deb/ -type f -name '*.in'); do

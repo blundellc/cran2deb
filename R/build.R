@@ -36,7 +36,7 @@ build <- function(name,extra_deps,force=F) {
         file.remove(Sys.glob(file.path(pbuilder_results,'*.upload')))
 
         # make mini-dinstall generate the skeleton of the archive
-        ret = log_system('umask 022;mini-dinstall --batch -c',dinstall_config)
+        ret = log_system('umask 002;mini-dinstall --batch -c',dinstall_config)
         if (ret != 0) {
             fail('failed to create archive')
         }
@@ -52,7 +52,7 @@ build <- function(name,extra_deps,force=F) {
             srcdep = pkgname_as_debian(dep,binary=F)
 
             notice('uploading',srcdep)
-            ret = log_system('umask 022;dput','-c',shQuote(dput_config),'local'
+            ret = log_system('umask 002;dput','-c',shQuote(dput_config),'local'
                         ,changesfile(srcdep))
             if (ret != 0) {
                 fail('upload of dependency failed! maybe you did not build it first?')
@@ -61,7 +61,7 @@ build <- function(name,extra_deps,force=F) {
         build_debian(pkg)
 
         # upload the package
-        ret = log_system('umask 022;dput','-c',shQuote(dput_config),'local'
+        ret = log_system('umask 002;dput','-c',shQuote(dput_config),'local'
                     ,changesfile(pkg$srcname,pkg$debversion))
         if (ret != 0) {
             fail('upload failed!')
