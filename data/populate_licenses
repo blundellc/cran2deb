@@ -87,3 +87,7 @@ accept distrib-noncomm
 accept GPL+ACM
 accept MCLUST
 accept UNCLEAR
+accept acepack
+accept ff
+pkg acepack acepack
+pkg ff ff
