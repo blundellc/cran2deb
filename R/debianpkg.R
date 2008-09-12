@@ -41,6 +41,24 @@ generate_rules <- function(pkg) {
 
 generate_copyright <- function(pkg) {
     # generate_copyright file; we trust DESCRIPTION
+
+    # if maintainer is missing then try to use author
+    if (!('Maintainer' %in% colnames(pkg$description))) {
+        if ('Author' %in% colnames(pkg$description)) {
+            maintainer = pkg$description[1,'Author']
+        } else {
+            fail('Maintainer and Author not defined in R DESCRIPTION')
+        }
+    } else {
+        maintainer = pkg$description[1,'Maintainer']
+    }
+    # likewise if author is missing then try to use maintainer
+    if (!('Author' %in% colnames(pkg$description))) {
+        author = maintainer
+    } else {
+        author = pkg$description[1,'Author']
+    }
+
     writeLines(strwrap(
         paste('This Debian package of the GNU R package',pkg$name
              ,'was generated automatically using cran2deb by'
@@ -49,11 +67,11 @@ generate_copyright <- function(pkg) {
              ,'The original GNU R package is Copyright (C) '
              # TODO: copyright start date, true copyright date
              ,format(Sys.time(),'%Y')
-             ,pkg$description[1,'Author']
+             ,author
              ,'and possibly others.'
              ,''
              ,'The original GNU R package is maintained by'
-             ,pkg$description[1,'Maintainer'],'and was obtained from:'
+             ,maintainer,'and was obtained from:'
              ,''
              ,pkg$repoURL
              ,''
