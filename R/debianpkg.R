@@ -118,7 +118,7 @@ prepare_new_debian <- function(pkg,extra_deps) {
     # let's hope iconv DTRT).
     for (file in c('control','changelog','copyright')) {
         log_system('iconv -o ',shQuote(pkg$debfile(file))
-                    ,' -t utf8 '
+                    ,' -t utf8 -c '
                     ,shQuote(pkg$debfile(paste(file,'in',sep='.'))))
         file.remove(pkg$debfile(paste(file,'in',sep='.')))
     }
