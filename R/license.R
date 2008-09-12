@@ -22,7 +22,6 @@ is_acceptable_license <- function(license) {
         warn('Accepting/rejecting wild license as',license,'. FIX THE PACKAGE!')
         return(action)
     }
-    # TODO: file {LICENSE,LICENCE} (+ maybe COPYING?)
     error('Wild license',license,'did not match classic rules; rejecting')
     return(F)
 }
@@ -85,9 +84,18 @@ get_license <- function(pkg,license) {
     license <- chomp(gsub('[[:space:]]+',' ',license))
     if (length(grep('^file ',license))) {
         if (length(grep('^file LICEN[CS]E$',license))) {
-            path = gsub('file ','',license)
-            path = file.path(pkg$path, path)
-            license <- license_text_reduce(readChar(path,file.info(path)$size))
+            file = gsub('file ','',license)
+            path = file.path(pkg$path, file)
+            if (file.exists(path)) {
+                license <- license_text_reduce(readChar(path,file.info(path)$size))
+            } else {
+                path = file.path(pkg$path, 'inst', file)
+                if (file.exists(path)) {
+                    license <- license_text_reduce(readChar(path,file.info(path)$size))
+                } else {
+                    error('said to look at a license file but license file is missing')
+                }
+            }
         } else {
             error('invalid license file specification',license)
             return(NA)
