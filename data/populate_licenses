@@ -77,7 +77,6 @@ pkg GPL partsm
 pkg GPL timsac
 pkg GPL HTMLapplets
 pkg GPL moc
-ls
 pkg GPL ibdreg
 pkg AGPL accuracy
 pkg AGPL Zelig
@@ -91,3 +90,10 @@ accept acepack
 accept ff
 pkg acepack acepack
 pkg ff ff
+pkg AGPL AIS
+pkg AGPL BARD
+accept NISTnls
+pkg NISTnls NISTnls
+pkg GPL NMMAPSlite
+pkg GPL PET
+pkg distrib-noncomm RLadyBug
